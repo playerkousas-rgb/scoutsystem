@@ -1,145 +1,249 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import AuthGate from '@/components/AuthGate';
-import { adminRoles, getCurrentUser, getData, leaderRoles, roleLabel, upsertLibraryBookmark, type AppData, type LibraryBookmarkStatus } from '@/lib/troupeStore';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { type LibraryBookmarkStatus } from '@/lib/troupeStore';
 
-const statusOptions: Array<{ value: LibraryBookmarkStatus; label: string }> = [
-  { value: 'new', label: '待處理' },
-  { value: 'following', label: '適合跟進' },
-  { value: 'not_applicable', label: '不適用' },
-  { value: 'converted', label: '已轉活動草稿' },
-  { value: 'published', label: '已發布' },
-];
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 
-function getParam(name: string) {
-  if (typeof window === 'undefined') return '';
-  return new URLSearchParams(window.location.search).get(name) || '';
-}
+const statusOptions: LibraryBookmarkStatus[] = ['new', 'following', 'not_applicable', 'converted', 'published'];
+
+const statusLabel: Record<LibraryBookmarkStatus, string> = {
+  new: '待處理', following: '適合跟進', not_applicable: '不適用', converted: '已轉活動草稿', published: '已發布', archived: '已封存'
+};
 
 export default function LibraryImportPage() {
-  return <AuthGate roles={[...adminRoles, ...leaderRoles]} title="加入圖書館通告需要領袖或後台登入"><ImportInner /></AuthGate>;
-}
+  const router = useRouter();
+  const search = useSearchParams();
 
-function ImportInner() {
-  const [data, setData] = useState<AppData | null>(null);
-  const [saved, setSaved] = useState(false);
-  const [form, setForm] = useState({
-    title: '', sourceSite: '', region: '', circularDate: '', sourceUrl: '', attachmentUrl: '', officialDeadline: '', targetText: '', fee: '',
-    status: 'new' as LibraryBookmarkStatus,
-    branchTags: [] as string[], audienceTags: [] as string[], activityType: '', internalDeadline: '', ownerUserId: '', notes: '',
-  });
+  // 來源通告參數（只讀）
+  const [title] = useState(search.get('title') || '');
+  const [sourceSite] = useState(search.get('sourceSite') || '');
+  const [region] = useState(search.get('region') || '');
+  const [circularDate] = useState(search.get('date') || '');
+  const [sourceUrl] = useState(search.get('sourceUrl') || '');
+  const [attachmentUrl] = useState(search.get('attachmentUrl') || '');
+  const [officialDeadline] = useState(search.get('deadline') || '');
+  const [targetText] = useState(search.get('audience') || '');
+  const [fee] = useState(search.get('fee') || '');
 
+  // 本旅標記欄位（可編輯）
+  const [circularKey, setCircularKey] = useState(() => 'circular-' + Date.now());
+  const [status, setStatus] = useState<LibraryBookmarkStatus>('new');
+  const [branchTags, setBranchTags] = useState('');
+  const [audienceTags, setAudienceTags] = useState('');
+  const [activityType, setActivityType] = useState('');
+  const [internalDeadline, setInternalDeadline] = useState('');
+  const [notes, setNotes] = useState('');
+
+  const [user, setUser] = useState<{ userId: string; name: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  // 讀取登入用戶
   useEffect(() => {
-    const d = getData();
-    const user = getCurrentUser();
-    setData(d);
-    setForm(f => ({
-      ...f,
-      title: getParam('title'),
-      sourceSite: getParam('sourceSite') || getParam('source_site'),
-      region: getParam('region'),
-      circularDate: getParam('date') || getParam('capturedDate'),
-      sourceUrl: getParam('sourceUrl') || getParam('url'),
-      attachmentUrl: getParam('attachmentUrl') || getParam('pdf_url') || getParam('pdfUrl'),
-      officialDeadline: getParam('deadline') || getParam('officialDeadline'),
-      targetText: getParam('target') || getParam('audience'),
-      fee: getParam('fee'),
-      ownerUserId: user?.id || '',
-      branchTags: guessBranches(getParam('target') || getParam('audience'), d.branches.map(b => b.shortName)),
-      audienceTags: guessAudience(getParam('target') || getParam('audience')),
-    }));
+    try {
+      const raw = localStorage.getItem('currentUser');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.userId) {
+          setUser({ userId: parsed.userId, name: parsed.name });
+          return;
+        }
+      }
+    } catch {}
+    // fallback
+    try {
+      const sessionId = localStorage.getItem('scout-system-session-v2');
+      if (sessionId) {
+        const rawData = localStorage.getItem('scout-system-ui-v2');
+        if (rawData) {
+          const data = JSON.parse(rawData);
+          const found = data?.users?.find((u: any) => u.id === sessionId);
+          if (found) {
+            setUser({ userId: found.id, name: found.name });
+          }
+        }
+      }
+    } catch {}
   }, []);
 
-  const circularKey = useMemo(() => {
-    const raw = form.attachmentUrl || form.sourceUrl || `${form.sourceSite}|${form.title}|${form.circularDate}`;
-    return raw.trim();
-  }, [form]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      setError('請先登入才能加入書籤');
+      return;
+    }
+    setLoading(true);
+    setError('');
 
-  if (!data) return null;
-
-  const toggle = (field: 'branchTags' | 'audienceTags', value: string) => {
-    setForm(f => ({ ...f, [field]: f[field].includes(value) ? f[field].filter(x => x !== value) : [...f[field], value] }));
+    try {
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'addLibraryBookmark',
+          circularKey,
+          title,
+          sourceSite,
+          region,
+          circularDate,
+          sourceUrl,
+          attachmentUrl,
+          officialDeadline,
+          targetText,
+          fee,
+          status,
+          branchTags: branchTags.split(/[,、]/).map(s => s.trim()).filter(Boolean),
+          audienceTags: audienceTags.split(/[,、]/).map(s => s.trim()).filter(Boolean),
+          activityType,
+          internalDeadline,
+          ownerUserId: user.userId,
+          notes,
+          createdBy: user.userId,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuccess(true);
+        setTimeout(() => router.push('/library'), 1200);
+      } else {
+        setError(data.error || '加入失敗');
+      }
+    } catch (err: any) {
+      setError(err.message || '連線失敗');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const save = () => {
-    const user = getCurrentUser();
-    upsertLibraryBookmark({
-      circularKey,
-      title: form.title || '未命名通告',
-      sourceSite: form.sourceSite,
-      region: form.region,
-      circularDate: form.circularDate,
-      sourceUrl: form.sourceUrl,
-      attachmentUrl: form.attachmentUrl || form.sourceUrl,
-      officialDeadline: form.officialDeadline,
-      targetText: form.targetText,
-      fee: form.fee,
-      status: form.status,
-      branchTags: form.branchTags,
-      audienceTags: form.audienceTags,
-      activityType: form.activityType,
-      internalDeadline: form.internalDeadline,
-      ownerUserId: form.ownerUserId,
-      notes: form.notes,
-      createdBy: user?.id,
-    });
-    setSaved(true);
-  };
+  if (!user) {
+    return (
+      <div className="stack" style={{ maxWidth: 600, margin: '60px auto' }}>
+        <section className="card">
+          <span className="badge red">需要登入</span>
+          <h2>請先登入</h2>
+          <p className="muted">只有領袖或管理員可以將通告加入本旅圖書館。</p>
+          <a href="/login" className="btn primary">前往登入</a>
+        </section>
+      </div>
+    );
+  }
 
-  return <div className="split">
-    <section className="card stack">
-      <span className="badge gold">由通告圖書館加入</span>
-      <h2>確認加入本旅收藏</h2>
-      <p className="muted">圖書館按鈕會把通告基本資料帶到這頁；領袖只需要確認標記，不需要操作 Google Sheet。</p>
-      {saved && <div className="notice">已加入本旅收藏。下一步可以在圖書館頁查看收藏，或稍後轉成活動草稿。</div>}
+  if (success) {
+    return (
+      <div className="stack" style={{ maxWidth: 600, margin: '60px auto' }}>
+        <section className="card" style={{ background: '#f0fff4', border: '1px solid #ccffcc' }}>
+          <span className="badge green">加入成功</span>
+          <h2>已加入本旅圖書館</h2>
+          <p className="muted">正在跳轉至圖書館頁面...</p>
+        </section>
+      </div>
+    );
+  }
 
-      <div className="card" style={{ boxShadow: 'none' }}>
-        <span className="badge blue">{form.region || '未有地域'} · {form.sourceSite || '未有來源'}</span>
-        <h3>{form.title || '未收到標題'}</h3>
-        <p className="muted">日期：{form.circularDate || '-'}　官方截止：{form.officialDeadline || '-'}　對象：{form.targetText || '-'}　費用：{form.fee || '-'}</p>
-        <div className="row">
-          {form.attachmentUrl && <a className="btn" target="_blank" href={form.attachmentUrl}>開啟附件</a>}
-          {form.sourceUrl && <a className="btn" target="_blank" href={form.sourceUrl}>開啟來源</a>}
+  return (
+    <div className="stack" style={{ maxWidth: 720, margin: '0 auto' }}>
+      <section className="hero">
+        <span className="badge gold">加入本旅圖書館</span>
+        <h1>標記通告</h1>
+        <p className="muted">確認以下資訊後加入本旅圖書館，供其他領袖跟進。</p>
+      </section>
+
+      <form onSubmit={handleSubmit} className="stack">
+        {/* 來源通告資訊（只讀） */}
+        <section className="card stack">
+          <h2>來源通告資訊</h2>
+          <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <div>
+              <label className="muted" style={{ fontSize: 13 }}>標題</label>
+              <input className="w-full" value={title} readOnly style={{ background: '#f8fafc' }} />
+            </div>
+            <div>
+              <label className="muted" style={{ fontSize: 13 }}>來源網站</label>
+              <input className="w-full" value={sourceSite} readOnly style={{ background: '#f8fafc' }} />
+            </div>
+            <div>
+              <label className="muted" style={{ fontSize: 13 }}>地域</label>
+              <input className="w-full" value={region} readOnly style={{ background: '#f8fafc' }} />
+            </div>
+            <div>
+              <label className="muted" style={{ fontSize: 13 }}>通告日期</label>
+              <input className="w-full" value={circularDate} readOnly style={{ background: '#f8fafc' }} />
+            </div>
+            <div>
+              <label className="muted" style={{ fontSize: 13 }}>官方截止</label>
+              <input className="w-full" value={officialDeadline} readOnly style={{ background: '#f8fafc' }} />
+            </div>
+            <div>
+              <label className="muted" style={{ fontSize: 13 }}>費用</label>
+              <input className="w-full" value={fee} readOnly style={{ background: '#f8fafc' }} />
+            </div>
+          </div>
+          <div>
+            <label className="muted" style={{ fontSize: 13 }}>對象</label>
+            <input className="w-full" value={targetText} readOnly style={{ background: '#f8fafc' }} />
+          </div>
+          <div className="row" style={{ gap: 12 }}>
+            {sourceUrl && <a href={sourceUrl} target="_blank" className="btn">開啟來源</a>}
+            {attachmentUrl && <a href={attachmentUrl} target="_blank" className="btn primary">開啟附件</a>}
+          </div>
+        </section>
+
+        {/* 本旅標記設定 */}
+        <section className="card stack">
+          <h2>本旅標記設定</h2>
+          <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <div>
+              <label className="muted" style={{ fontSize: 13 }}>狀態</label>
+              <select className="select w-full" value={status} onChange={e => setStatus(e.target.value as LibraryBookmarkStatus)}>
+                {statusOptions.map(s => <option key={s} value={s}>{statusLabel[s]}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="muted" style={{ fontSize: 13 }}>活動類型</label>
+              <input className="w-full" value={activityType} onChange={e => setActivityType(e.target.value)} placeholder="例如：訓練班 / 服務日 / 營期" />
+            </div>
+            <div>
+              <label className="muted" style={{ fontSize: 13 }}>本旅截止</label>
+              <input type="date" className="w-full" value={internalDeadline} onChange={e => setInternalDeadline(e.target.value)} />
+            </div>
+            <div>
+              <label className="muted" style={{ fontSize: 13 }}>Circular Key</label>
+              <input className="w-full" value={circularKey} onChange={e => setCircularKey(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label className="muted" style={{ fontSize: 13 }}>適用支部（用逗號分隔）</label>
+            <input className="w-full" value={branchTags} onChange={e => setBranchTags(e.target.value)} placeholder="全旅, 幼童軍支部, 童軍支部" />
+          </div>
+          <div>
+            <label className="muted" style={{ fontSize: 13 }}>對象標籤（用逗號分隔）</label>
+            <input className="w-full" value={audienceTags} onChange={e => setAudienceTags(e.target.value)} placeholder="領袖, 幼童軍, 童軍" />
+          </div>
+          <div>
+            <label className="muted" style={{ fontSize: 13 }}>備註</label>
+            <textarea className="w-full" rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="給其他領袖的內部備註..." />
+          </div>
+          <div className="muted" style={{ fontSize: 13 }}>
+            負責人：{user.name} ({user.userId})
+          </div>
+        </section>
+
+        {error && (
+          <section className="card" style={{ background: '#fff0f0', border: '1px solid #ffcccc' }}>
+            <p style={{ color: 'var(--red)' }}>⚠️ {error}</p>
+          </section>
+        )}
+
+        <div className="row" style={{ justifyContent: 'space-between' }}>
+          <a href="/library" className="btn">取消</a>
+          <button type="submit" className="btn primary" disabled={loading}>
+            {loading ? '加入中...' : '加入本旅圖書館'}
+          </button>
         </div>
-      </div>
-
-      <label><span className="label">處理狀態</span><select className="select" value={form.status} onChange={e => setForm({ ...form, status: e.target.value as LibraryBookmarkStatus })}>{statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></label>
-      <label><span className="label">活動類型</span><select className="select" value={form.activityType} onChange={e => setForm({ ...form, activityType: e.target.value })}><option value="">未分類</option><option>訓練班</option><option>比賽</option><option>服務</option><option>專章</option><option>會議</option><option>行政</option><option>其他</option></select></label>
-      <label><span className="label">本旅內部截止日期</span><input className="input" type="date" value={form.internalDeadline} onChange={e => setForm({ ...form, internalDeadline: e.target.value })} /></label>
-      <label><span className="label">負責人</span><select className="select" value={form.ownerUserId} onChange={e => setForm({ ...form, ownerUserId: e.target.value })}>{data.users.filter(u => [...adminRoles, ...leaderRoles].includes(u.role)).map(u => <option key={u.id} value={u.id}>{u.name} · {roleLabel[u.role]}</option>)}</select></label>
-
-      <div>
-        <span className="label">適用支部</span>
-        <div className="row">{['全旅', ...data.branches.map(b => b.shortName)].map(tag => <button key={tag} className={`btn ${form.branchTags.includes(tag) ? 'primary' : ''}`} onClick={() => toggle('branchTags', tag)}>{tag}</button>)}</div>
-      </div>
-      <div>
-        <span className="label">對象</span>
-        <div className="row">{['成員', '家長', '領袖', '團長'].map(tag => <button key={tag} className={`btn ${form.audienceTags.includes(tag) ? 'primary' : ''}`} onClick={() => toggle('audienceTags', tag)}>{tag}</button>)}</div>
-      </div>
-      <label><span className="label">備註</span><textarea className="textarea" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></label>
-      <div className="row"><button className="btn primary" onClick={save}>加入本旅收藏</button><button className="btn gold" onClick={() => { setForm({ ...form, status: 'converted' }); save(); }}>加入並標記為活動草稿</button><Link className="btn" href="/library">返回圖書館</Link></div>
-    </section>
-    <aside className="card stack">
-      <h3>接入方式 B</h3>
-      <p className="muted">圖書館不用 API，只要在每張通告加「加入 ScoutSystem」按鈕，把資料放入 URL parameters 帶到此頁即可。</p>
-      <code style={{ whiteSpace: 'pre-wrap' }}>{`/library/import?title=...&sourceSite=...&region=...&pdf_url=...&deadline=...&audience=...&fee=...`}</code>
-    </aside>
-  </div>;
-}
-
-function guessAudience(text: string) {
-  const out: string[] = [];
-  if (/領袖|團長|教練/.test(text)) out.push('領袖');
-  if (/家長|親子/.test(text)) out.push('家長');
-  if (/小童軍|幼童軍|童軍|深資|樂行|成員/.test(text)) out.push('成員');
-  return out;
-}
-
-function guessBranches(text: string, branchShortNames: string[]) {
-  const out: string[] = [];
-  for (const b of branchShortNames) if (text.includes(b)) out.push(b);
-  if (/全旅|所有|全體/.test(text)) out.push('全旅');
-  return out;
+      </form>
+    </div>
+  );
 }
