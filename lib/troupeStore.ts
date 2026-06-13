@@ -1,8 +1,18 @@
 export type Role = 'super_admin' | 'admin' | 'group_leader' | 'branch_leader' | 'coach' | 'parent' | 'member';
 export type EventScope = 'troop' | 'branch' | 'hq' | 'region' | 'district' | 'training';
 export type EventStatus = 'draft' | 'published' | 'archived';
+export type LibraryBookmarkStatus = 'new' | 'following' | 'not_applicable' | 'converted' | 'published' | 'archived';
 export type ReplyStatus = 'pending' | 'yes' | 'no';
 export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
+export type MemberFieldKey = 'ymNumber' | 'name' | 'age' | 'gender' | 'phone' | 'emergencyContactName' | 'emergencyContactPhone';
+
+export type FieldSetting = {
+  key: MemberFieldKey;
+  label: string;
+  required: boolean;
+  enabled: boolean;
+  source?: 'core' | 'optional' | 'ymis';
+};
 
 export type Branch = {
   id: string;
@@ -15,6 +25,7 @@ export type User = {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   password?: string;
   role: Role;
   branchId?: string;
@@ -44,6 +55,11 @@ export type Member = {
   ymNumber?: string;
   parentUserId?: string;
   emergencyPhone?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  phone?: string;
+  age?: string;
+  gender?: '男' | '女' | '其他' | '';
   dateOfBirth?: string;
   school?: string;
   rank?: string;
@@ -87,6 +103,31 @@ export type Notification = {
   createdAt: string;
 };
 
+export type LibraryBookmark = {
+  id: string;
+  circularKey: string;
+  title: string;
+  sourceSite?: string;
+  region?: string;
+  circularDate?: string;
+  sourceUrl?: string;
+  attachmentUrl?: string;
+  officialDeadline?: string;
+  targetText?: string;
+  fee?: string;
+  status: LibraryBookmarkStatus;
+  branchTags: string[];
+  audienceTags: string[];
+  activityType?: string;
+  internalDeadline?: string;
+  ownerUserId?: string;
+  notes?: string;
+  convertedEventId?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt?: string;
+};
+
 export type AppData = {
   branches: Branch[];
   users: User[];
@@ -95,6 +136,8 @@ export type AppData = {
   events: Event[];
   replies: EventReply[];
   notifications: Notification[];
+  memberFieldSettings: FieldSetting[];
+  libraryBookmarks: LibraryBookmark[];
 };
 
 const STORAGE_KEY = 'scout-system-ui-v2';
@@ -134,16 +177,49 @@ export function seedData(): AppData {
       { id: 'u2', name: '李團長', email: 'gsl-cub@example.com', password: 'leader123', role: 'group_leader', branchId: 'b2', approved: true },
       { id: 'u3', name: '黃支部領袖', email: 'leader-scout@example.com', password: 'leader123', role: 'branch_leader', branchId: 'b3', approved: true },
       { id: 'u4', name: '何教練員', email: 'coach@example.com', password: 'coach123', role: 'coach', branchId: 'b4', approved: true },
-      { id: 'u5', name: '王家長', email: 'parent@example.com', password: 'parent123', role: 'parent', approved: true },
+      { id: 'u5', name: '王家長', email: 'parent@example.com', phone: '9123 4567', password: 'parent123', role: 'parent', approved: true },
       { id: 'u6', name: '王小明', email: 'member@example.com', password: 'member123', role: 'member', branchId: 'b3', memberId: 'm1', approved: true },
+    ],
+    libraryBookmarks: [
+      {
+        id: 'lb1',
+        circularKey: 'demo-scout-library-item',
+        title: '地域領袖訓練班（圖書館收藏示範）',
+        sourceSite: '九龍地域',
+        region: '九龍地域',
+        circularDate: addDays(-1),
+        sourceUrl: 'https://scout-circulars.vercel.app/',
+        attachmentUrl: 'https://scout-circulars.vercel.app/',
+        officialDeadline: addDays(20),
+        targetText: '領袖',
+        fee: '$120',
+        status: 'following',
+        branchTags: ['全旅'],
+        audienceTags: ['領袖'],
+        activityType: '訓練班',
+        internalDeadline: addDays(14),
+        ownerUserId: 'u1',
+        notes: '示範收藏：可由圖書館加入 ScoutSystem。',
+        createdBy: 'u1',
+        createdAt: new Date().toISOString(),
+      }
+    ],
+    memberFieldSettings: [
+      { key: 'ymNumber', label: 'YMIS / 成員編號', required: true, enabled: true, source: 'core' },
+      { key: 'name', label: '姓名', required: true, enabled: true, source: 'core' },
+      { key: 'age', label: '年齡', required: false, enabled: false, source: 'optional' },
+      { key: 'gender', label: '性別', required: false, enabled: false, source: 'optional' },
+      { key: 'phone', label: '成員電話', required: false, enabled: false, source: 'optional' },
+      { key: 'emergencyContactName', label: '緊急聯絡人', required: false, enabled: true, source: 'optional' },
+      { key: 'emergencyContactPhone', label: '緊急聯絡人電話', required: false, enabled: true, source: 'optional' },
     ],
     leaderApplications: [
       { id: 'la1', name: '張教練', email: 'newcoach@example.com', requestedRole: 'coach', branchId: 'b2', phone: '9000 1111', experience: '曾協助幼童軍集會及戶外活動。', status: 'pending', createdAt: new Date().toISOString() },
       { id: 'la2', name: '林團長申請', email: 'newgsl@example.com', requestedRole: 'group_leader', branchId: 'b4', phone: '9000 2222', experience: '現任深資活動負責人，申請團長權限。', status: 'pending', createdAt: new Date().toISOString() },
     ],
     members: [
-      { id: 'm1', name: '王小明', branchId: 'b3', patrol: '猛虎小隊', ymNumber: 'YM001', parentUserId: 'u5', emergencyPhone: '9123 4567', dateOfBirth: '2012-03-15', school: '筲箕灣官立小學', rank: '會員' },
-      { id: 'm2', name: '王小美', branchId: 'b2', patrol: '紅花六', ymNumber: 'YM002', parentUserId: 'u5', emergencyPhone: '9123 4567', dateOfBirth: '2015-07-20', school: '東區小學', rank: '會員' },
+      { id: 'm1', name: '王小明', branchId: 'b3', patrol: '猛虎小隊', ymNumber: 'YM001', parentUserId: 'u5', emergencyPhone: '9123 4567', emergencyContactName: '王先生', emergencyContactPhone: '9123 4567', age: '13', gender: '男', dateOfBirth: '2012-03-15', school: '筲箕灣官立小學', rank: '會員' },
+      { id: 'm2', name: '王小美', branchId: 'b2', patrol: '紅花六', ymNumber: 'YM002', parentUserId: 'u5', emergencyPhone: '9123 4567', emergencyContactName: '王先生', emergencyContactPhone: '9123 4567', age: '10', gender: '女', dateOfBirth: '2015-07-20', school: '東區小學', rank: '會員' },
       { id: 'm3', name: '陳志豪', branchId: 'b3', patrol: '雄鷹小隊', ymNumber: 'YM003', parentUserId: undefined, emergencyPhone: '9234 5678', rank: '小隊長' },
       { id: 'm4', name: '林雅晴', branchId: 'b4', patrol: '深資小隊', ymNumber: 'YM004', parentUserId: undefined, emergencyPhone: '9345 6789', rank: '會員' },
     ],
@@ -176,7 +252,7 @@ export function getData(): AppData {
   }
   try {
     const parsed = JSON.parse(raw) as AppData;
-    if (!parsed.leaderApplications) return resetData();
+    if (!parsed.leaderApplications || !parsed.memberFieldSettings || !parsed.libraryBookmarks) return resetData();
     return parsed;
   } catch {
     return resetData();
@@ -273,10 +349,10 @@ export function createEventWithReplies(data: AppData, event: Omit<Event, 'id' | 
   return { ...data, events: [newEvent, ...data.events], replies: [...newReplies, ...data.replies], notifications: [...newNotifications, ...data.notifications] };
 }
 
-export function registerParentAccount(name: string, email: string, childYmNumbers: string[]) {
+export function registerParentAccount(name: string, email: string, childYmNumbers: string[], phone?: string) {
   const data = getData();
   const parentId = uid('u');
-  const parent: User = { id: parentId, name, email, role: 'parent', approved: false };
+  const parent: User = { id: parentId, name, email, phone, role: 'parent', approved: false };
   const ymSet = new Set(childYmNumbers.map(v => v.trim()).filter(Boolean));
   const members = data.members.map(member => ymSet.has(member.ymNumber || '') ? { ...member, parentUserId: parentId } : member);
   const next = { ...data, users: [parent, ...data.users], members };
@@ -290,4 +366,21 @@ export function submitLeaderApplication(input: Omit<LeaderApplication, 'id' | 's
   const next = { ...data, leaderApplications: [application, ...data.leaderApplications] };
   saveData(next);
   return application;
+}
+
+export function upsertLibraryBookmark(input: Omit<LibraryBookmark, 'id' | 'createdAt' | 'updatedAt'>) {
+  const data = getData();
+  const existing = data.libraryBookmarks.find(b => b.circularKey === input.circularKey);
+  const now = new Date().toISOString();
+  const bookmark: LibraryBookmark = existing
+    ? { ...existing, ...input, updatedAt: now }
+    : { ...input, id: uid('lb'), createdAt: now };
+  const next = {
+    ...data,
+    libraryBookmarks: existing
+      ? data.libraryBookmarks.map(b => b.id === existing.id ? bookmark : b)
+      : [bookmark, ...data.libraryBookmarks],
+  };
+  saveData(next);
+  return bookmark;
 }

@@ -1,4 +1,12 @@
+'use client';
+
+import AuthGate from '@/components/AuthGate';
+
 export default function BadgesPage() {
+  return <AuthGate title="專科徽章報考需要登入"><BadgesInner /></AuthGate>;
+}
+
+function BadgesInner() {
   return <div className="stack">
     <section className="hero">
       <span className="badge blue">專科徽章報考</span>

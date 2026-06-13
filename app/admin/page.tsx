@@ -11,7 +11,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const d = getData();
-    const current = getCurrentUser() || d.users.find(u => adminRoles.includes(u.role));
+    const current = getCurrentUser();
     if (current) setCurrentUser(current.id);
     setData(d);
     setUser(current);
@@ -105,11 +105,22 @@ function AdminAccounts({ data, user, save }: { data: AppData; user: User; save: 
     setName(''); setEmail(''); setPassword('');
   };
 
+  const changeRole = (targetId: string, role: Role) => {
+    if (user.role !== 'super_admin') return;
+    save({
+      ...data,
+      users: data.users.map(u => u.id === targetId ? { ...u, role, branchId: adminRoles.includes(role) ? undefined : u.branchId } : u),
+    });
+  };
+
   return <section className="card stack">
     <h3>管理員帳戶設定</h3>
     <div className="notice">超級管理員：不能由前台申請，正式版會在 Google Sheet 直接初始化。管理員：由超級管理員在此建立，可登入後台並管理所有支部。</div>
     {user.role === 'super_admin' ? <div className="grid"><input className="input" placeholder="管理員姓名" value={name} onChange={e => setName(e.target.value)} /><input className="input" placeholder="Email / 帳戶" value={email} onChange={e => setEmail(e.target.value)} /><input className="input" placeholder="初始密碼" value={password} onChange={e => setPassword(e.target.value)} /><button className="btn primary" onClick={addAdmin}>建立管理員</button></div> : <p className="muted">只有超級管理員可建立管理員帳戶。</p>}
     <table className="table"><thead><tr><th>姓名</th><th>帳戶</th><th>身份</th><th>建立來源</th></tr></thead><tbody>{data.users.filter(u => adminRoles.includes(u.role)).map(u => <tr key={u.id}><td>{u.name}</td><td>{u.email}</td><td><span className="badge blue">{roleLabel[u.role]}</span></td><td>{u.createdBy || '-'}</td></tr>)}</tbody></table>
+    <h3>身份升級 / 移除下一級資格</h3>
+    <p className="muted">當某人加入上一級單位，可用單一身份取代原本下一級身份，避免同一人同時持有多重衝突權限。</p>
+    <table className="table"><thead><tr><th>人員</th><th>目前身份</th><th>支部</th><th>改為</th></tr></thead><tbody>{data.users.filter(u => u.role !== 'parent' && u.role !== 'member').map(u => <tr key={u.id}><td>{u.name}<br /><span className="muted">{u.email}</span></td><td>{roleLabel[u.role]}</td><td>{getBranchName(data, u.branchId)}</td><td><select className="select" value={u.role} disabled={user.role !== 'super_admin' || u.role === 'super_admin'} onChange={e => changeRole(u.id, e.target.value as Role)}><option value="admin">管理員</option><option value="group_leader">團長</option><option value="branch_leader">支部領袖</option><option value="coach">教練員</option></select></td></tr>)}</tbody></table>
   </section>;
 }
 

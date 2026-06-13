@@ -14,7 +14,7 @@ export default function ParentPage() {
 
   useEffect(() => {
     const d = getData();
-    const current = getCurrentUser() || d.users.find(u => u.role === 'parent' && u.approved !== false);
+    const current = getCurrentUser();
     if (current) setCurrentUser(current.id);
     setData(d); setUser(current);
   }, []);

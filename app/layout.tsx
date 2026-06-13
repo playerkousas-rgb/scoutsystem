@@ -19,7 +19,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/parent">家長頁面</Link>
             <Link href="/member">成員頁面</Link>
             <Link href="/activities">活動</Link>
+            <Link href="/library">圖書館</Link>
+            <Link href="/notices">通告</Link>
             <Link href="/badges">專科徽章</Link>
+            <Link href="/settings">欄位設定</Link>
             <Link href="/ui-map">UI 地圖</Link>
           </nav>
         </header>

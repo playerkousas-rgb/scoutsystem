@@ -7,7 +7,7 @@ import { getBranchName, getCurrentUser, getData, isFutureEvent, setCurrentUser, 
 export default function MemberPage() {
   const [data, setData] = useState<AppData | null>(null);
   const [user, setUser] = useState<User | undefined>();
-  useEffect(() => { const d = getData(); const current = getCurrentUser() || d.users.find(u => u.role === 'member'); if (current) setCurrentUser(current.id); setData(d); setUser(current); }, []);
+  useEffect(() => { const d = getData(); const current = getCurrentUser(); if (current) setCurrentUser(current.id); setData(d); setUser(current); }, []);
   if (!data || !user || user.role !== 'member') return <div className="card stack"><h2>請先登入成員帳戶。</h2><Link className="btn primary" href="/login">前往登入</Link></div>;
 
   const member = data.members.find(m => m.id === user.memberId);

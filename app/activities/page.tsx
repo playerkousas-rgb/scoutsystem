@@ -1,11 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import AuthGate from '@/components/AuthGate';
 import { getBranchName, getData, isFutureEvent, type AppData, type EventScope } from '@/lib/troupeStore';
 
 const scopeLabel: Record<EventScope | 'all', string> = { all: '全部', troop: '旅活動', branch: '支部活動', hq: '總部', region: '地域', district: '區', training: '訓練班' };
 
 export default function ActivitiesPage() {
+  return <AuthGate title="活動頁面需要登入"><ActivitiesInner /></AuthGate>;
+}
+
+function ActivitiesInner() {
   const [data, setData] = useState<AppData | null>(null);
   const [scope, setScope] = useState<EventScope | 'all'>('all');
   useEffect(() => setData(getData()), []);

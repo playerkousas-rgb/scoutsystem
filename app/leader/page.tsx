@@ -10,7 +10,7 @@ export default function LeaderPage() {
 
   useEffect(() => {
     const d = getData();
-    const current = getCurrentUser() || d.users.find(u => leaderRoles.includes(u.role));
+    const current = getCurrentUser();
     if (current) setCurrentUser(current.id);
     setData(d); setUser(current);
   }, []);
