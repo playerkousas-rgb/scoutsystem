@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 
-const BRANCHES = ['全旅', '小童軍', '幼童軍', '童軍', '深資童軍', '樂行童軍'];
+const BRANCHES = ['全旅', '小童軍', '幼童軍', '童軍', '深資童軍', '樂行童軍', '領袖'];
 const AUDIENCES = ['成員', '家長', '領袖', '團長'];
 const ACTIVITY_TYPES = ['訓練班', '服務', '活動', '比賽', '考驗日', '工作坊', '其他'];
 
@@ -15,14 +15,14 @@ function getUser() {
     const raw = localStorage.getItem('currentUser');
     if (raw) {
       const p = JSON.parse(raw);
-      if (p?.userId) return { id: p.userId, name: p.name };
+      if (p?.userId) return { id: p.userId, name: p.name, role: p.role };
     }
   } catch {}
   try {
     const sid = localStorage.getItem('scout-system-session-v2');
     const d = JSON.parse(localStorage.getItem('scout-system-ui-v2') || '{}');
     const u = d?.users?.find((x: any) => x.id === sid);
-    if (u) return { id: u.id, name: u.name };
+    if (u) return { id: u.id, name: u.name, role: u.role };
   } catch {}
   return null;
 }

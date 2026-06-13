@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 const LIBRARY_URL = 'https://scout-circulars.vercel.app/';
 
-const BRANCHES = ['全旅', '小童軍', '幼童軍', '童軍', '深資童軍', '樂行童軍'];
+const BRANCHES = ['全旅', '小童軍', '幼童軍', '童軍', '深資童軍', '樂行童軍', '領袖'];
 
 type BookmarkItem = {
   id: string;
@@ -46,40 +46,39 @@ function getUser() {
   return null;
 }
 
+function getMarkedIds(key: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) return new Set(JSON.parse(raw));
+  } catch {}
+  return new Set();
+}
+
+function saveMarkedIds(key: string, ids: Set<string>) {
+  localStorage.setItem(key, JSON.stringify([...ids]));
+}
+
 export default function LibraryPage() {
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [connected, setConnected] = useState(false);
   const [branch, setBranch] = useState('all');
-  const [starred, setStarred] = useState<Set<string>>(new Set());
-  const [showStarredOnly, setShowStarredOnly] = useState(false);
+  const [showStarred, setShowStarred] = useState(false);
+  const [showHearted, setShowHearted] = useState(false);
+  const [stars, setStars] = useState<Set<string>>(() => getMarkedIds('scout-activity-stars'));
+  const [hearts, setHearts] = useState<Set<string>>(() => getMarkedIds('scout-activity-hearts'));
   const [user, setUser] = useState<{ id: string; name: string; role: string } | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState('');
   const [delMsg, setDelMsg] = useState('');
 
-  // 載入星標（localStorage 個人標記）
   useEffect(() => {
     const u = getUser();
     setUser(u);
-    try {
-      const raw = localStorage.getItem('scout-library-stars');
-      if (raw) setStarred(new Set(JSON.parse(raw)));
-    } catch {}
   }, []);
 
-  const saveStars = (ids: Set<string>) => {
-    setStarred(new Set(ids));
-    localStorage.setItem('scout-library-stars', JSON.stringify([...ids]));
-  };
-
-  const toggleStar = (id: string) => {
-    const next = new Set(starred);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    saveStars(next);
-  };
+  const canManage = user && (user.role === 'super_admin' || user.role === 'admin' || user.role === 'group_leader');
 
   useEffect(() => {
     let cancelled = false;
@@ -109,7 +108,21 @@ export default function LibraryPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const canManage = user && (user.role === 'super_admin' || user.role === 'admin' || user.role === 'group_leader');
+  const toggleStar = (id: string) => {
+    const next = new Set(stars);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setStars(next);
+    saveMarkedIds('scout-activity-stars', next);
+  };
+
+  const toggleHeart = (id: string) => {
+    const next = new Set(hearts);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setHearts(next);
+    saveMarkedIds('scout-activity-hearts', next);
+  };
 
   const deleteBookmark = async (id: string) => {
     if (!confirm('確定要刪除這個通告？')) return;
@@ -150,7 +163,10 @@ export default function LibraryPage() {
   };
 
   const filtered = bookmarks
-    .filter(b => !showStarredOnly || starred.has(b.id))
+    .filter(b => {
+      if (!showStarred && !showHearted) return true;
+      return (showStarred && stars.has(b.id)) || (showHearted && hearts.has(b.id));
+    })
     .filter(b => branch === 'all' || (b.branchTags || []).includes(branch))
     .sort((a, b) => String(a.internalDeadline || '').localeCompare(String(b.internalDeadline || '')));
 
@@ -176,20 +192,22 @@ export default function LibraryPage() {
       <section className="hero">
         <span className="badge gold">本旅通告圖書館</span>
         <h1>領袖已標記通告</h1>
-        <p>這裡顯示領袖從全港童軍通告圖書館中挑選、收藏及標記的通告。你可以標記自己有興趣的通告。</p>
+        <p>這裡顯示領袖從全港童軍通告圖書館中挑選、收藏及標記的通告。你可以標記自己有興趣的通告，或記錄已報名的項目。</p>
         <div className="row">
           <a className="btn primary" href={LIBRARY_URL} target="_blank">開啟全港通告圖書館</a>
         </div>
       </section>
       <section className="grid">
         <div className="card"><span className="badge blue">本旅收藏</span><h2>{bookmarks.length}</h2><p className="muted">領袖標記後才會出現在這裡</p></div>
-        <div className="card"><span className="badge gold">已標星</span><h2>{starred.size}</h2><p className="muted">你感興趣的通告</p></div>
+        <div className="card"><span className="badge gold">⭐ 已標星</span><h2>{stars.size}</h2><p className="muted">你感興趣的通告</p></div>
+        <div className="card"><span className="badge red">❤️ 已報名</span><h2>{hearts.size}</h2><p className="muted">已報名或已參加的項目</p></div>
       </section>
       <section className="card row">
         <strong>篩選：</strong>
-        <button className={`btn ${!showStarredOnly ? 'primary' : ''}`} onClick={() => setShowStarredOnly(false)}>全部</button>
-        <button className={`btn ${showStarredOnly ? 'primary' : ''}`} onClick={() => setShowStarredOnly(true)}>⭐ 已標星</button>
-        <div className="row" style={{ gap: 6, marginLeft: 12 }}>
+        <button className={`btn ${!showStarred && !showHearted ? 'primary' : ''}`} onClick={() => { setShowStarred(false); setShowHearted(false); }}>全部</button>
+        <button className={`btn ${showStarred ? 'primary' : ''}`} onClick={() => { setShowStarred(true); setShowHearted(false); }}>⭐ 已標星</button>
+        <button className={`btn ${showHearted ? 'primary' : ''}`} onClick={() => { setShowStarred(false); setShowHearted(true); }}>❤️ 已報名</button>
+        <div className="row" style={{ gap: 6, marginLeft: 12, flexWrap: 'wrap' }}>
           {BRANCHES.map(b => (
             <button key={b} className={`btn ${branch === b ? 'primary' : ''}`} onClick={() => setBranch(branch === b ? 'all' : b)}>
               {b}
@@ -205,8 +223,11 @@ export default function LibraryPage() {
             <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
                 <div className="row" style={{ gap: 8, marginBottom: 4 }}>
-                  <button className="btn" style={{ fontSize: 20, padding: '0 6px' }} onClick={() => toggleStar(b.id)}>
-                    {starred.has(b.id) ? '⭐' : '☆'}
+                  <button className="btn" style={{ fontSize: 18, padding: '0 4px' }} title="感興趣" onClick={() => toggleStar(b.id)}>
+                    {stars.has(b.id) ? '⭐' : '☆'}
+                  </button>
+                  <button className="btn" style={{ fontSize: 18, padding: '0 4px' }} title="已報名/已參加" onClick={() => toggleHeart(b.id)}>
+                    {hearts.has(b.id) ? '❤️' : '🤍'}
                   </button>
                   <h3 style={{ marginBottom: 0 }}>{b.title}</h3>
                 </div>

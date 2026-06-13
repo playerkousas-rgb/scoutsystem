@@ -5,11 +5,8 @@ import { getBranchName, type AppData, type EventScope } from '@/lib/troupeStore'
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 
-const scopeLabel: Record<EventScope | 'all', string> = {
-  all: '全部', troop: '旅活動', branch: '支部活動', hq: '總部', region: '地域', district: '區', training: '訓練班'
-};
-
-const BRANCHES = ['全旅', '小童軍', '幼童軍', '童軍', '深資童軍', '樂行童軍'];
+const TABS = ['全部', '旅活動', '支部活動', '外部活動'] as const;
+const BRANCHES = ['全旅', '小童軍', '幼童軍', '童軍', '深資童軍', '樂行童軍', '領袖'];
 
 function normalizeDate(value: any): string {
   if (!value) return '';
@@ -38,7 +35,23 @@ type ActivityItem = {
   circularKey?: string;
   sourceUrl?: string;
   attachmentUrl?: string;
+  officialDeadline?: string;
+  internalDeadline?: string;
+  activityType?: string;
+  branchTags?: string[];
 };
+
+function getMarkedIds(key: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) return new Set(JSON.parse(raw));
+  } catch {}
+  return new Set();
+}
+
+function saveMarkedIds(key: string, ids: Set<string>) {
+  localStorage.setItem(key, JSON.stringify([...ids]));
+}
 
 export default function ActivitiesPage() {
   const [events, setEvents] = useState<ActivityItem[]>([]);
@@ -46,8 +59,12 @@ export default function ActivitiesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [connected, setConnected] = useState(false);
-  const [scope, setScope] = useState<EventScope | 'all'>('all');
+  const [tab, setTab] = useState<typeof TABS[number]>('全部');
   const [branch, setBranch] = useState('all');
+  const [showStarred, setShowStarred] = useState(false);
+  const [showHearted, setShowHearted] = useState(false);
+  const [stars, setStars] = useState<Set<string>>(() => getMarkedIds('scout-activity-stars'));
+  const [hearts, setHearts] = useState<Set<string>>(() => getMarkedIds('scout-activity-hearts'));
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +72,6 @@ export default function ActivitiesPage() {
       setLoading(true);
       setError('');
       try {
-        // 同時載入 Events + LibraryBookmarks
         const [calendarRes, libRes] = await Promise.all([
           fetch(`${APPS_SCRIPT_URL}?action=getPublicCalendarItems`, { cache: 'no-store' }),
           fetch(`${APPS_SCRIPT_URL}?action=getPublicLibraryBookmarks`, { cache: 'no-store' }),
@@ -81,10 +97,10 @@ export default function ActivitiesPage() {
             const libItems = (libData.data || []).map((b: any) => ({
               id: b.id,
               title: b.title,
-              date: b.internalDeadline || b.officialDeadline || '',
+              date: b.internalDeadline || b.officialDeadline || b.circularDate || '',
               location: b.sourceSite || b.region || '全港',
               description: b.notes || '本旅已標記通告，請向領袖查詢詳情。',
-              status: b.status,
+              status: b.status || 'published',
               scope: 'troop' as EventScope,
               source: 'library',
               isLibrary: true,
@@ -92,6 +108,10 @@ export default function ActivitiesPage() {
               sourceUrl: b.sourceUrl,
               attachmentUrl: b.attachmentUrl,
               fee: b.fee,
+              officialDeadline: b.officialDeadline,
+              internalDeadline: b.internalDeadline,
+              activityType: b.activityType,
+              branchTags: b.branchTags || [],
             }));
             allEvents = [...allEvents, ...libItems];
           }
@@ -110,14 +130,47 @@ export default function ActivitiesPage() {
     return () => { cancelled = true; };
   }, []);
 
+  const toggleStar = (id: string) => {
+    const next = new Set(stars);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setStars(next);
+    saveMarkedIds('scout-activity-stars', next);
+  };
+
+  const toggleHeart = (id: string) => {
+    const next = new Set(hearts);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setHearts(next);
+    saveMarkedIds('scout-activity-hearts', next);
+  };
+
   const filteredEvents = useMemo(() => {
     return events
-      .filter(e => e.status === 'published' || e.status === 'active' || e.status === 'following' || !e.status)
-      .filter(e => !e.isLibrary || isFutureEvent(e.date))
-      .filter(e => scope === 'all' || e.scope === scope)
-      .filter(e => branch === 'all' || (e.isLibrary ? true : e.scope === 'branch' && getBranchName({ branches } as AppData, e.branchId) === branch))
+      .filter(e => {
+        if (tab === '全部') return true;
+        if (tab === '旅活動') return e.scope === 'troop' && !e.isLibrary;
+        if (tab === '支部活動') return e.scope === 'branch' && !e.isLibrary;
+        if (tab === '外部活動') return e.isLibrary || (e.scope !== 'troop' && e.scope !== 'branch');
+        return true;
+      })
+      .filter(e => {
+        if (branch === 'all') return true;
+        if (e.isLibrary) {
+          return (e.branchTags || []).includes(branch);
+        }
+        // For events, try to match branch name via branchId
+        const bName = branches.find((b: any) => b.id === e.branchId)?.name || '';
+        return bName === branch || bName.replace('支部', '') === branch || bName.includes(branch);
+      })
+      .filter(e => {
+        if (!showStarred && !showHearted) return true;
+        return (showStarred && stars.has(e.id)) || (showHearted && hearts.has(e.id));
+      })
+      .filter(e => !e.isLibrary || isFutureEvent(e.date) || stars.has(e.id) || hearts.has(e.id))
       .sort((a, b) => a.date.localeCompare(b.date));
-  }, [events, scope, branch, branches]);
+  }, [events, tab, branch, stars, hearts, showStarred, showHearted, branches]);
 
   if (loading) return <div className="stack" style={{ padding: 40 }}>載入中...</div>;
 
@@ -136,30 +189,44 @@ export default function ActivitiesPage() {
       <section className="hero">
         <span className="badge blue">公開活動</span>
         <h1>旅或支部未來活動</h1>
-        <p>集中展示旅、支部、總部、地域區及訓練班活動，以及本旅已標記的全港通告。無需登入即可查看。</p>
+        <p>集中展示旅、支部活動，以及本旅已標記的全港通告。標記 ⭐ 感興趣、❤️ 已報名，即使通告過期也不會消失。</p>
         <div className="row">
-          <strong>篩選：</strong>
-          {(Object.keys(scopeLabel) as Array<EventScope | 'all'>).map(k => (
-            <button key={k} className={`btn ${scope === k ? 'primary' : ''}`} onClick={() => setScope(k)}>{scopeLabel[k]}</button>
+          {TABS.map(t => (
+            <button key={t} className={`btn ${tab === t ? 'primary' : ''}`} onClick={() => setTab(t)}>{t}</button>
           ))}
         </div>
-        <div className="row" style={{ marginTop: 8, flexWrap: 'wrap' }}>
-          <strong>支部：</strong>
-          <button className={`btn ${branch === 'all' ? 'primary' : ''}`} onClick={() => setBranch('all')}>全部</button>
+      </section>
+      <section className="card row">
+        <strong>篩選：</strong>
+        <button className={`btn ${!showStarred && !showHearted ? 'primary' : ''}`} onClick={() => { setShowStarred(false); setShowHearted(false); }}>全部</button>
+        <button className={`btn ${showStarred ? 'primary' : ''}`} onClick={() => { setShowStarred(true); setShowHearted(false); }}>⭐ 已標星</button>
+        <button className={`btn ${showHearted ? 'primary' : ''}`} onClick={() => { setShowStarred(false); setShowHearted(true); }}>❤️ 已報名</button>
+        <div className="row" style={{ gap: 6, marginLeft: 12, flexWrap: 'wrap' }}>
           {BRANCHES.map(b => (
-            <button key={b} className={`btn ${branch === b ? 'primary' : ''}`} onClick={() => setBranch(b)}>{b}</button>
+            <button key={b} className={`btn ${branch === b ? 'primary' : ''}`} onClick={() => setBranch(branch === b ? 'all' : b)}>
+              {b}
+            </button>
           ))}
         </div>
       </section>
       <section className="card stack">
         {filteredEvents.map(e => (
           <div className="card" style={{ boxShadow: 'none' }} key={e.id}>
-            <div className="row" style={{ justifyContent: 'space-between' }}>
-              <div>
-                <span className="badge blue">{scopeLabel[e.scope]}</span>
-                {e.isLibrary && <span className="badge gold">通告</span>}
-                {e.source === 'scout_library' && <span className="badge gold">童軍圖書館</span>}
-                <h3>{e.title}</h3>
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <div className="row" style={{ gap: 8, marginBottom: 4 }}>
+                  <button className="btn" style={{ fontSize: 18, padding: '0 4px' }} title="感興趣" onClick={() => toggleStar(e.id)}>
+                    {stars.has(e.id) ? '⭐' : '☆'}
+                  </button>
+                  <button className="btn" style={{ fontSize: 18, padding: '0 4px' }} title="已報名/已參加" onClick={() => toggleHeart(e.id)}>
+                    {hearts.has(e.id) ? '❤️' : '🤍'}
+                  </button>
+                  <div>
+                    <span className="badge blue">{e.isLibrary ? '通告' : e.scope === 'troop' ? '旅活動' : e.scope === 'branch' ? '支部活動' : '外部活動'}</span>
+                    {e.source === 'scout_library' && <span className="badge gold">童軍圖書館</span>}
+                    <h3 style={{ marginTop: 4, marginBottom: 0 }}>{e.title}</h3>
+                  </div>
+                </div>
               </div>
               <strong>{e.date}</strong>
             </div>
@@ -167,6 +234,7 @@ export default function ActivitiesPage() {
               {e.date} · {e.location}
               {e.isLibrary ? '' : ` · ${getBranchName({ branches } as AppData, e.branchId)}`}
               · 費用：{e.fee || '-'}
+              {e.isLibrary && e.activityType && ` · 類型：${e.activityType}`}
             </p>
             <p>{e.description}</p>
             {e.isLibrary && e.attachmentUrl && (
@@ -177,7 +245,7 @@ export default function ActivitiesPage() {
             )}
           </div>
         ))}
-        {!filteredEvents.length && <p className="muted">目前沒有符合條件的未來活動。</p>}
+        {!filteredEvents.length && <p className="muted">目前沒有符合條件的活動或通告。</p>}
       </section>
     </div>
   );
