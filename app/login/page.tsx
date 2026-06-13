@@ -74,8 +74,7 @@ export default function LoginPage() {
           </button>
         </form>
         <div className="row" style={{ justifyContent: 'space-between', marginTop: 16 }}>
-          <a href="/register" className="btn">家長註冊</a>
-          <a href="/leader/apply" className="btn">領袖申請</a>
+          <a href="/apply" className="btn">申請加入</a>
         </div>
       </section>
     </div>
