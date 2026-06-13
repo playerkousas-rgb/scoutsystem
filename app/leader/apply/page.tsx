@@ -11,6 +11,14 @@ const ROLES = [
   { value: 'coach', label: '教練員' },
 ];
 
+const BRANCHES = [
+  { value: 'b1', label: '小童軍支部' },
+  { value: 'b2', label: '幼童軍支部' },
+  { value: 'b3', label: '童軍支部' },
+  { value: 'b4', label: '深資童軍支部' },
+  { value: 'b5', label: '樂行童軍支部' },
+];
+
 export default function LeaderApplyPage() {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -106,10 +114,7 @@ export default function LeaderApplyPage() {
           <div>
             <label className="block text-sm font-medium mb-1">所屬支部</label>
             <select className="select w-full" value={branchId} onChange={e => setBranchId(e.target.value)}>
-              <option value="b1">小童軍支部</option>
-              <option value="b2">幼童軍支部</option>
-              <option value="b3">童軍支部</option>
-              <option value="b4">深資童軍支部</option>
+              {BRANCHES.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
             </select>
           </div>
           <div>

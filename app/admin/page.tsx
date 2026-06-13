@@ -69,9 +69,9 @@ function AdminInner() {
   return (
     <div className="stack">
       <section className="hero">
-        <span className="badge gold">超級管理員控制台</span>
+        <span className="badge gold">{user?.role === 'super_admin' ? '超級管理員' : '管理員'}控制台</span>
         <h1>後台總覽</h1>
-        <p>您擁有系統最高權限，可管理所有功能。</p>
+        <p>您擁有系統管理權限，可管理所有功能。</p>
       </section>
 
       {error && (
@@ -80,7 +80,6 @@ function AdminInner() {
         </section>
       )}
 
-      {/* 統計卡片 */}
       {stats && (
         <section className="grid">
           <div className="card"><span className="badge blue">用戶</span><h2>{stats.totalUsers || 0}</h2><p className="muted">總用戶數</p></div>
@@ -91,7 +90,6 @@ function AdminInner() {
         </section>
       )}
 
-      {/* 待審批申請 */}
       {applications.length > 0 && (
         <section className="card stack">
           <h2>待審批申請</h2>
@@ -100,24 +98,27 @@ function AdminInner() {
               <div className="row" style={{ justifyContent: 'space-between' }}>
                 <div>
                   <h3>{app.name}</h3>
-                  <p className="muted">{app.email} · {app.role} · {app.branchId}</p>
+                  <p className="muted">{app.email} · {app.applicantType || app.role} · {app.branchId}</p>
                 </div>
                 <button className="btn primary" onClick={() => approve(app.applicationId || app.id)}>審批</button>
               </div>
               {app.experience && <p>{app.experience}</p>}
-              {app.childYmNumbers && <p className="muted">子女 YM：{app.childYmNumbers}</p>}
+              {app.ymNumbers && <p className="muted">子女 YM：{app.ymNumbers}</p>}
             </div>
           ))}
         </section>
       )}
 
-      {/* 功能卡片 */}
       <section className="grid">
         <FeatureCard title="支部管理" icon="🏢" text="管理所有支部資料、新增或編輯支部。" href="/admin/branches" />
         <FeatureCard title="成員資料庫" icon="👥" text="查看及管理所有支部的成員資料。" href="/admin/members" />
+        <FeatureCard title="家長審核" icon="✅" text="審核家長申請及子女綁定請求。" href="/admin/parents" />
         <FeatureCard title="活動管理" icon="🗓️" text="新增、發布及管理全旅活動。" href="/admin/events" />
         <FeatureCard title="圖書館標記" icon="📚" text="標記本旅需要的圖書館通告。" href="/library" />
+        <FeatureCard title="通告管理" icon="📄" text="上傳及管理通告檔案。" href="/notices" />
         <FeatureCard title="系統設定" icon="⚙️" text="管理 SystemConfig、Roles、FieldSettings 等系統設定。" href="/admin/settings" />
+        <FeatureCard title="使用者管理" icon="👤" text="查看及管理所有使用者帳號。" href="/admin/users" />
+        <FeatureCard title="審核紀錄" icon="📜" text="查看所有申請與操作紀錄。" href="/admin/audit" />
       </section>
     </div>
   );
