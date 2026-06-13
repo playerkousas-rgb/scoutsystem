@@ -23,11 +23,11 @@ export default function LoginPage() {
       );
       const data = await res.json();
 
-      if (data.success) {
+      if (data.success && data.user) {
         // 登入成功，儲存使用者資訊
         localStorage.setItem('currentUser', JSON.stringify(data.user));
         localStorage.setItem('isLoggedIn', 'true');
-        
+
         // 跳轉到後台
         router.push('/admin');
       } else {
@@ -43,7 +43,7 @@ export default function LoginPage() {
   return (
     <div className="max-w-md mx-auto mt-20 p-6">
       <h1 className="text-2xl font-bold mb-6">登入系統</h1>
-      
+
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
           <label className="block text-sm mb-1">電子郵件</label>
