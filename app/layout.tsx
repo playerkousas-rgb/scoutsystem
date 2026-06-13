@@ -14,11 +14,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Link className="brand" href="/">🏕️ ScoutSystem 旅團管理系統</Link>
           <nav className="nav">
             <Link href="/login">登入 / 身份</Link>
+            <Link href="/apply">申請加入</Link>
             <Link href="/admin">後台</Link>
             <Link href="/leader">領袖頁面</Link>
             <Link href="/parent">家長頁面</Link>
             <Link href="/member">成員頁面</Link>
             <Link href="/activities">活動</Link>
+            <Link href="/calendar">行事曆</Link>
             <Link href="/library">圖書館</Link>
             <Link href="/notices">通告</Link>
             <Link href="/badges">專科徽章</Link>

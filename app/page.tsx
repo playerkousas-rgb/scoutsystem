@@ -23,7 +23,8 @@ export default function HomePage() {
         <Feature title="家長頁面" icon="👪" text="家長可編輯子女資料，查看相關支部及全旅活動，回覆活動報名。" href="/parent" />
         <Feature title="成員頁面" icon="🧒" text="成員查看自己支部資料、領袖資料及相關活動。" href="/member" />
         <Feature title="活動頁面" icon="🗓️" text="展示旅、支部、總部、地域區及訓練班未來活動；童軍圖書館接口預留。" href="/activities" />
-        <Feature title="圖書館頁面" icon="📚" text="集中處理總部、地域、區、訓練班、旅團資源及 DBS 入口資料來源。" href="/library" />
+        <Feature title="公開行事曆" icon="📆" text="只作公開查看用途，標記哪一天有活動，不處理報名及行政流程。" href="/calendar" />
+        <Feature title="圖書館頁面" icon="📚" text="顯示領袖按本旅需要標記的通告，並保留外部全港圖書館連結。" href="/library" />
         <Feature title="通告管理" icon="📄" text="支援上傳通告檔案，並預留自動抽取日期、時間、地點及費用。" href="/notices" />
         <Feature title="專科徽章報考" icon="🎖️" text="接入現有 DBS 系統，日後可帶入成員及支部資料。" href="/badges" />
       </section>

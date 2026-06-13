@@ -50,19 +50,36 @@ export type LeaderApplication = {
 export type Member = {
   id: string;
   name: string;
+  nameChinese?: string;
+  nameEnglish?: string;
   branchId: string;
+  section?: string;
+  groupName?: string;
+  district?: string;
+  region?: string;
   patrol?: string;
   ymNumber?: string;
   parentUserId?: string;
   emergencyPhone?: string;
   emergencyContactName?: string;
   emergencyContactPhone?: string;
+  emergencyContactRelation?: string;
   phone?: string;
   age?: string;
   gender?: '男' | '女' | '其他' | '';
   dateOfBirth?: string;
   school?: string;
+  className?: string;
   rank?: string;
+  hkidMasked?: string;
+  appointmentNo?: string;
+  email?: string;
+  address?: string;
+  parentGuardianName?: string;
+  parentGuardianPhone?: string;
+  medicalNotes?: string;
+  allergyNotes?: string;
+  additionalInfo?: string;
 };
 
 export type Event = {
@@ -218,7 +235,7 @@ export function seedData(): AppData {
       { id: 'la2', name: '林團長申請', email: 'newgsl@example.com', requestedRole: 'group_leader', branchId: 'b4', phone: '9000 2222', experience: '現任深資活動負責人，申請團長權限。', status: 'pending', createdAt: new Date().toISOString() },
     ],
     members: [
-      { id: 'm1', name: '王小明', branchId: 'b3', patrol: '猛虎小隊', ymNumber: 'YM001', parentUserId: 'u5', emergencyPhone: '9123 4567', emergencyContactName: '王先生', emergencyContactPhone: '9123 4567', age: '13', gender: '男', dateOfBirth: '2012-03-15', school: '筲箕灣官立小學', rank: '會員' },
+      { id: 'm1', name: '王小明', branchId: 'b3', patrol: '猛虎小隊', ymNumber: 'YM001', parentUserId: 'u5', emergencyPhone: '9123 4567', emergencyContactName: '王先生', emergencyContactPhone: '9123 4567', age: '13', gender: '男', dateOfBirth: '2012-03-15', school: '筲箕灣官立小學', rank: '會員', nameChinese: '王小明', nameEnglish: 'WONG Siu Ming', groupName: '筲箕灣區示範旅', district: '筲箕灣區', region: '港島地域', email: 'member@example.com', parentGuardianName: '王家長', parentGuardianPhone: '9123 4567', medicalNotes: '', allergyNotes: '', additionalInfo: '' },
       { id: 'm2', name: '王小美', branchId: 'b2', patrol: '紅花六', ymNumber: 'YM002', parentUserId: 'u5', emergencyPhone: '9123 4567', emergencyContactName: '王先生', emergencyContactPhone: '9123 4567', age: '10', gender: '女', dateOfBirth: '2015-07-20', school: '東區小學', rank: '會員' },
       { id: 'm3', name: '陳志豪', branchId: 'b3', patrol: '雄鷹小隊', ymNumber: 'YM003', parentUserId: undefined, emergencyPhone: '9234 5678', rank: '小隊長' },
       { id: 'm4', name: '林雅晴', branchId: 'b4', patrol: '深資小隊', ymNumber: 'YM004', parentUserId: undefined, emergencyPhone: '9345 6789', rank: '會員' },

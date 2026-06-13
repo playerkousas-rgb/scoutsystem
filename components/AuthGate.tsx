@@ -8,7 +8,7 @@ export default function AuthGate({
   children,
   roles,
   title = '需要登入才能使用此頁面',
-  applyHref = '/leader/apply',
+  applyHref = '/apply',
 }: {
   children: React.ReactNode;
   roles?: Role[];
