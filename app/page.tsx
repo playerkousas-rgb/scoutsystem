@@ -2,55 +2,84 @@ import Link from 'next/link';
 
 export default function HomePage() {
   return (
-    <div className="stack">
-      <section className="hero">
-        <span className="badge gold">Step 1 · 身份及控制台 UI</span>
-        <h1>ScoutSystem 旅團管理與協作系統</h1>
-        <p>
-          這一版先建立各身份入口及控制台：超級管理員、管理員、團長、支部領袖、教練員、家長、成員。
-          後台暫用 localStorage 模擬，下一步會逐 Part 接入 Google Sheet 與 Apps Script。
-        </p>
-        <div className="row">
-          <Link className="btn primary" href="/login">🚀 進入身份 Demo</Link>
-          <Link className="btn gold" href="/admin">🔐 後台</Link>
-          <Link className="btn" href="/leader">🧭 領袖頁面</Link>
+    <div className="min-h-screen bg-gray-50">
+      {/* 頂部導航 */}
+      <nav className="bg-white border-b">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="text-xl font-bold text-blue-600">ScoutSystem</div>
+          <div className="flex gap-3">
+            <Link 
+              href="/login" 
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              登入
+            </Link>
+            <Link 
+              href="/apply" 
+              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              申請加入
+            </Link>
+          </div>
         </div>
-      </section>
+      </nav>
 
-      <section className="grid">
-        <Feature title="後台" icon="🔐" text="超級管理員由 Google Sheet 初始化；可建立管理員。管理員可查看及管理所有支部。" href="/admin" />
-        <Feature title="領袖頁面" icon="🧭" text="團長、支部領袖、教練員統一入口；依支部限制管理權限。" href="/leader" />
-        <Feature title="家長頁面" icon="👪" text="家長可編輯子女資料，查看相關支部及全旅活動，回覆活動報名。" href="/parent" />
-        <Feature title="成員頁面" icon="🧒" text="成員查看自己支部資料、領袖資料及相關活動。" href="/member" />
-        <Feature title="活動頁面" icon="🗓️" text="展示旅、支部、總部、地域區及訓練班未來活動；童軍圖書館接口預留。" href="/activities" />
-        <Feature title="公開行事曆" icon="📆" text="只作公開查看用途，標記哪一天有活動，不處理報名及行政流程。" href="/calendar" />
-        <Feature title="圖書館頁面" icon="📚" text="顯示領袖按本旅需要標記的通告，並保留外部全港圖書館連結。" href="/library" />
-        <Feature title="通告管理" icon="📄" text="支援上傳通告檔案，並預留自動抽取日期、時間、地點及費用。" href="/notices" />
-        <Feature title="專科徽章報考" icon="🎖️" text="接入現有 DBS 系統，日後可帶入成員及支部資料。" href="/badges" />
-      </section>
+      {/* Hero 區 */}
+      <div className="max-w-5xl mx-auto px-4 pt-16 pb-12 text-center">
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          ScoutSystem<br />旅團管理與協作系統
+        </h1>
+        <p className="text-lg text-gray-600 max-w-xl mx-auto">
+          整合成員管理、活動報名、圖書館通告與專科徽章的數位平台
+        </p>
 
-      <section className="card">
-        <h2>本輪先確認的身份規則</h2>
-        <ol>
-          <li>超級管理員不能申請，只能在 Google Sheet 起始設定帳戶及密碼。</li>
-          <li>超級管理員登入後台後，可建立管理員帳戶及密碼。</li>
-          <li>管理員可登入後台，查看及管理所有支部資料。</li>
-          <li>團長、支部領袖、教練員統稱領袖頁面；申請團長由管理員 / 超級管理員批核。</li>
-          <li>支部領袖及教練員可自由申請，由相關支部團長批核。</li>
-          <li>家長可編輯子女資料及查看相關支部 / 旅資料。</li>
-          <li>成員只查看自己支部資料。</li>
-        </ol>
-      </section>
-    </div>
-  );
-}
+        <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+          <Link 
+            href="/login" 
+            className="px-8 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+          >
+            登入系統
+          </Link>
+          <Link 
+            href="/apply" 
+            className="px-8 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-100"
+          >
+            申請加入
+          </Link>
+        </div>
+      </div>
 
-function Feature({ title, text, icon, href }: { title: string; text: string; icon: string; href: string }) {
-  return (
-    <div className="card stack">
-      <h3>{icon} {title}</h3>
-      <p className="muted">{text}</p>
-      <Link className="btn block" href={href}>查看</Link>
+      {/* 公開功能區 */}
+      <div className="max-w-5xl mx-auto px-4 pb-20">
+        <h2 className="text-2xl font-semibold text-center mb-8 text-gray-800">
+          公開功能
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          {/* 公開行事曆 */}
+          <Link href="/calendar" className="group">
+            <div className="bg-white rounded-2xl p-8 border hover:border-blue-300 transition-all h-full">
+              <div className="text-4xl mb-4">📆</div>
+              <h3 className="text-xl font-semibold mb-2 group-hover:text-blue-600">公開行事曆</h3>
+              <p className="text-gray-600">查看全旅近期活動日期，不需登入即可瀏覽。</p>
+            </div>
+          </Link>
+
+          {/* 活動與通告 */}
+          <Link href="/activities" className="group">
+            <div className="bg-white rounded-2xl p-8 border hover:border-blue-300 transition-all h-full">
+              <div className="text-4xl mb-4">📋</div>
+              <h3 className="text-xl font-semibold mb-2 group-hover:text-blue-600">活動與通告</h3>
+              <p className="text-gray-600">查看最新活動及領袖已標記的圖書館通告。</p>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* 頁尾 */}
+      <footer className="border-t py-8 text-center text-sm text-gray-500">
+        © 2026 82nd HKG ScoutSystem
+      </footer>
     </div>
   );
 }
