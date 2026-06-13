@@ -4,44 +4,50 @@ export default function HomePage() {
   return (
     <div className="stack">
       <section className="hero">
-        <span className="badge gold">MVP v0.1 · 參考 DBS 系統技術棧 Next.js</span>
-        <h1>旅團行政、家長回覆、活動統計，一個入口完成。</h1>
+        <span className="badge gold">Step 1 · 身份及控制台 UI</span>
+        <h1>ScoutSystem 旅團管理與協作系統</h1>
         <p>
-          本版本把「旅長 / 團長 / 領袖」三級權限、跨支部家長綁定、未來活動篩選、活動報名回覆與通知佇列設計成可操作原型。
-          初版使用瀏覽器 localStorage 模擬資料庫，方便先驗證流程；之後可替換成 Google Apps Script / Supabase / SQL 後端。
+          這一版先建立各身份入口及控制台：超級管理員、管理員、團長、支部領袖、教練員、家長、成員。
+          後台暫用 localStorage 模擬，下一步會逐 Part 接入 Google Sheet 與 Apps Script。
         </p>
         <div className="row">
-          <Link className="btn primary" href="/login">🚀 進入 Demo</Link>
-          <Link className="btn gold" href="/admin">⚙️ 管理後台</Link>
-          <Link className="btn" href="/parent">👪 家長入口</Link>
+          <Link className="btn primary" href="/login">🚀 進入身份 Demo</Link>
+          <Link className="btn gold" href="/admin">🔐 後台</Link>
+          <Link className="btn" href="/leader">🧭 領袖頁面</Link>
         </div>
       </section>
 
       <section className="grid">
-        <Feature title="階層化管理後台" icon="🛡️" text="旅長可看全旅；團長與領袖只可操作所屬支部，畫面與資料邏輯隔離。" />
-        <Feature title="家長單一入口" icon="👪" text="同一家長帳號可綁定跨支部成員，登入後集中查看子女活動狀態。" />
-        <Feature title="活動報名自動化" icon="📣" text="建立活動時選擇目標成員，系統自動產生回覆紀錄與通知佇列。" />
-        <Feature title="未來活動預設篩選" icon="🗓️" text="列表預設只顯示未來及未歸檔活動，過期活動自動淡出行政畫面。" />
+        <Feature title="後台" icon="🔐" text="超級管理員由 Google Sheet 初始化；可建立管理員。管理員可查看及管理所有支部。" href="/admin" />
+        <Feature title="領袖頁面" icon="🧭" text="團長、支部領袖、教練員統一入口；依支部限制管理權限。" href="/leader" />
+        <Feature title="家長頁面" icon="👪" text="家長可編輯子女資料，查看相關支部及全旅活動，回覆活動報名。" href="/parent" />
+        <Feature title="成員頁面" icon="🧒" text="成員查看自己支部資料、領袖資料及相關活動。" href="/member" />
+        <Feature title="活動頁面" icon="🗓️" text="展示旅、支部、總部、地域區及訓練班未來活動；童軍圖書館接口預留。" href="/activities" />
+        <Feature title="專科徽章報考" icon="🎖️" text="接入現有 DBS 系統，日後可帶入成員及支部資料。" href="/badges" />
       </section>
 
       <section className="card">
-        <h2>建議驗收流程</h2>
+        <h2>本輪先確認的身份規則</h2>
         <ol>
-          <li>到「登入 / 切換身份」選擇旅長、團長、領袖或家長 Demo 帳號。</li>
-          <li>在管理後台新增一個活動，確認三步內完成：基本資料 → 選擇成員 → 發布。</li>
-          <li>切換到家長帳號，查看跨支部子女活動，並提交出席 / 不出席回覆。</li>
-          <li>回到管理後台查看報名統計即時更新。</li>
+          <li>超級管理員不能申請，只能在 Google Sheet 起始設定帳戶及密碼。</li>
+          <li>超級管理員登入後台後，可建立管理員帳戶及密碼。</li>
+          <li>管理員可登入後台，查看及管理所有支部資料。</li>
+          <li>團長、支部領袖、教練員統稱領袖頁面；申請團長由管理員 / 超級管理員批核。</li>
+          <li>支部領袖及教練員可自由申請，由相關支部團長批核。</li>
+          <li>家長可編輯子女資料及查看相關支部 / 旅資料。</li>
+          <li>成員只查看自己支部資料。</li>
         </ol>
       </section>
     </div>
   );
 }
 
-function Feature({ title, text, icon }: { title: string; text: string; icon: string }) {
+function Feature({ title, text, icon, href }: { title: string; text: string; icon: string; href: string }) {
   return (
-    <div className="card">
+    <div className="card stack">
       <h3>{icon} {title}</h3>
       <p className="muted">{text}</p>
+      <Link className="btn block" href={href}>查看</Link>
     </div>
   );
 }

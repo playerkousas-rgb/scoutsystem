@@ -2,7 +2,16 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { getCurrentUser, getData, logout, resetData, roleLabel, setCurrentUser, type AppData, type User } from '@/lib/troupeStore';
+import { adminRoles, getCurrentUser, getData, leaderRoles, logout, resetData, roleLabel, setCurrentUser, type AppData, type Role, type User } from '@/lib/troupeStore';
+
+function landing(role?: Role) {
+  if (!role) return '/';
+  if (adminRoles.includes(role)) return '/admin';
+  if (leaderRoles.includes(role)) return '/leader';
+  if (role === 'parent') return '/parent';
+  if (role === 'member') return '/member';
+  return '/';
+}
 
 export default function LoginPage() {
   const [data, setData] = useState<AppData | null>(null);
@@ -28,54 +37,57 @@ export default function LoginPage() {
 
   if (!data) return null;
 
-  const approvedUsers = data.users.filter(u => u.approved !== false);
-  const pendingUsers = data.users.filter(u => u.approved === false);
+  const sections = [
+    { title: '後台帳戶', hint: '超級管理員只能由 Google Sheet 初始化；管理員由超級管理員建立。', users: data.users.filter(u => adminRoles.includes(u.role) && u.approved !== false) },
+    { title: '領袖頁面帳戶', hint: '團長 / 支部領袖 / 教練員統一進入領袖頁面，依支部限制權限。', users: data.users.filter(u => leaderRoles.includes(u.role) && u.approved !== false) },
+    { title: '家長 / 成員帳戶', hint: '家長管理子女資料；成員查看自己支部及個人資料。', users: data.users.filter(u => ['parent', 'member'].includes(u.role) && u.approved !== false) },
+  ];
 
   return (
     <div className="split">
       <section className="card stack">
         <div>
-          <span className="badge blue">Demo Authentication</span>
+          <span className="badge blue">Demo Identity Console</span>
           <h2>登入 / 切換身份</h2>
-          <p className="muted">MVP 暫以 Demo 帳號模擬權限。日後可接駁正式登入與審核流程。</p>
+          <p className="muted">現階段先用 Demo 按鈕模擬登入。下一步接 Google Sheet 後，超級管理員帳戶會只在 Sheet 直接設定，不能由前台申請。</p>
         </div>
 
-        {current ? (
-          <div className="notice">
-            目前身份：<strong>{current.name}</strong>（{roleLabel[current.role]}）
+        {current ? <div className="notice">目前身份：<strong>{current.name}</strong>（{roleLabel[current.role]}）</div> : <div className="notice">尚未登入。請選擇一個身份開始檢視 UI。</div>}
+
+        {sections.map(section => (
+          <div key={section.title} className="stack">
+            <h3>{section.title}</h3>
+            <p className="muted">{section.hint}</p>
+            <div className="grid">
+              {section.users.map(user => (
+                <button key={user.id} className="btn block" onClick={() => choose(user.id)}>
+                  {adminRoles.includes(user.role) ? '🔐' : leaderRoles.includes(user.role) ? '🧭' : user.role === 'parent' ? '👪' : '🧒'} {user.name} · {roleLabel[user.role]}
+                </button>
+              ))}
+            </div>
           </div>
-        ) : (
-          <div className="notice">尚未登入。請選擇一個 Demo 身份開始。</div>
-        )}
-
-        <div className="grid">
-          {approvedUsers.map(user => (
-            <button key={user.id} className="btn block" onClick={() => choose(user.id)}>
-              {user.role === 'parent' ? '👪' : '🛡️'} {user.name} · {roleLabel[user.role]}
-            </button>
-          ))}
-        </div>
+        ))}
 
         <div className="row">
-          <Link className="btn primary" href={current?.role === 'parent' ? '/parent' : '/admin'}>進入對應入口</Link>
+          <Link className="btn primary" href={landing(current?.role)}>進入目前身份控制台</Link>
           <button className="btn" onClick={() => { logout(); setCurrent(undefined); }}>登出</button>
           <button className="btn red" onClick={doReset}>重置 Demo 資料</button>
         </div>
       </section>
 
-      <aside className="card">
-        <h3>待審家長帳號</h3>
-        <p className="muted">家長可自行註冊，但需由管理後台審核後才能登入。</p>
+      <aside className="card stack">
+        <h3>身份及入口規則</h3>
         <table className="table">
           <tbody>
-            {pendingUsers.map(user => (
-              <tr key={user.id}><td>{user.name}</td><td>{user.email}</td><td><span className="badge gold">待審</span></td></tr>
-            ))}
-            {pendingUsers.length === 0 && <tr><td className="muted">暫無待審帳號</td></tr>}
+            <tr><th>超級管理員</th><td>不能申請，只能由 Google Sheet 開始設定帳戶及密碼。</td></tr>
+            <tr><th>管理員</th><td>由超級管理員在後台建立，可看及管理所有支部。</td></tr>
+            <tr><th>團長</th><td>可自由申請，由管理員 / 超級管理員批核。</td></tr>
+            <tr><th>支部領袖 / 教練員</th><td>可自由申請，由相關支部團長批核。</td></tr>
+            <tr><th>家長</th><td>管理子女資料及查看相關支部 / 全旅活動。</td></tr>
+            <tr><th>成員</th><td>查看自己支部資料及個人活動。</td></tr>
           </tbody>
         </table>
-        <hr />
-        <Link className="btn gold block" href="/register">建立家長註冊申請</Link>
+        <Link className="btn gold block" href="/leader/apply">申請領袖 / 教練員帳戶</Link>
       </aside>
     </div>
   );

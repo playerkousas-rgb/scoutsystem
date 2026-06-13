@@ -1,20 +1,39 @@
-export type Role = 'commissioner' | 'group_leader' | 'leader' | 'parent';
+export type Role = 'super_admin' | 'admin' | 'group_leader' | 'branch_leader' | 'coach' | 'parent' | 'member';
+export type EventScope = 'troop' | 'branch' | 'hq' | 'region' | 'district' | 'training';
 export type EventStatus = 'draft' | 'published' | 'archived';
 export type ReplyStatus = 'pending' | 'yes' | 'no';
+export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
 
 export type Branch = {
   id: string;
   name: string;
   shortName: string;
+  section: '小童軍' | '幼童軍' | '童軍' | '深資童軍' | '樂行童軍' | '其他';
 };
 
 export type User = {
   id: string;
   name: string;
   email: string;
+  password?: string;
   role: Role;
   branchId?: string;
+  memberId?: string;
   approved?: boolean;
+  createdBy?: string;
+};
+
+export type LeaderApplication = {
+  id: string;
+  name: string;
+  email: string;
+  requestedRole: 'group_leader' | 'branch_leader' | 'coach';
+  branchId: string;
+  phone?: string;
+  experience?: string;
+  status: ApplicationStatus;
+  approvedBy?: string;
+  createdAt: string;
 };
 
 export type Member = {
@@ -25,13 +44,18 @@ export type Member = {
   ymNumber?: string;
   parentUserId?: string;
   emergencyPhone?: string;
+  dateOfBirth?: string;
+  school?: string;
+  rank?: string;
 };
 
 export type Event = {
   id: string;
-  branchId: string;
+  branchId?: string;
+  scope: EventScope;
   title: string;
   date: string;
+  endDate?: string;
   location: string;
   quota?: number;
   fee?: string;
@@ -40,6 +64,7 @@ export type Event = {
   targetMemberIds: string[];
   createdBy: string;
   createdAt: string;
+  source?: 'manual' | 'scout_library' | 'dbs';
 };
 
 export type EventReply = {
@@ -65,14 +90,15 @@ export type Notification = {
 export type AppData = {
   branches: Branch[];
   users: User[];
+  leaderApplications: LeaderApplication[];
   members: Member[];
   events: Event[];
   replies: EventReply[];
   notifications: Notification[];
 };
 
-const STORAGE_KEY = 'troupe-management-mvp-v1';
-const SESSION_KEY = 'troupe-management-session-v1';
+const STORAGE_KEY = 'scout-system-ui-v2';
+const SESSION_KEY = 'scout-system-session-v2';
 
 const today = new Date();
 const addDays = (days: number) => {
@@ -82,44 +108,60 @@ const addDays = (days: number) => {
 };
 
 export const roleLabel: Record<Role, string> = {
-  commissioner: '旅長',
+  super_admin: '超級管理員',
+  admin: '管理員',
   group_leader: '團長',
-  leader: '領袖',
+  branch_leader: '支部領袖',
+  coach: '教練員',
   parent: '家長',
+  member: '成員',
 };
+
+export const adminRoles: Role[] = ['super_admin', 'admin'];
+export const leaderRoles: Role[] = ['group_leader', 'branch_leader', 'coach'];
 
 export function seedData(): AppData {
   return {
     branches: [
-      { id: 'b1', name: '第一支部', shortName: '一支' },
-      { id: 'b2', name: '第二支部', shortName: '二支' },
-      { id: 'b3', name: '深資支部', shortName: '深資' },
+      { id: 'b1', name: '小童軍支部', shortName: '小童軍', section: '小童軍' },
+      { id: 'b2', name: '幼童軍支部', shortName: '幼童軍', section: '幼童軍' },
+      { id: 'b3', name: '童軍支部', shortName: '童軍', section: '童軍' },
+      { id: 'b4', name: '深資童軍支部', shortName: '深資', section: '深資童軍' },
     ],
     users: [
-      { id: 'u1', name: '陳旅長', email: 'commissioner@example.com', role: 'commissioner', approved: true },
-      { id: 'u2', name: '李團長', email: 'leader-b1@example.com', role: 'group_leader', branchId: 'b1', approved: true },
-      { id: 'u3', name: '黃領袖', email: 'leader-b2@example.com', role: 'leader', branchId: 'b2', approved: true },
-      { id: 'u4', name: '王家長', email: 'parent@example.com', role: 'parent', approved: true },
-      { id: 'u5', name: '待審家長', email: 'newparent@example.com', role: 'parent', approved: false },
+      { id: 'u0', name: '系統超級管理員', email: 'super@example.com', password: 'sheet-only', role: 'super_admin', approved: true, createdBy: 'Google Sheet 初始化' },
+      { id: 'u1', name: '陳旅長 / 管理員', email: 'admin@example.com', password: 'admin123', role: 'admin', approved: true, createdBy: 'u0' },
+      { id: 'u2', name: '李團長', email: 'gsl-cub@example.com', password: 'leader123', role: 'group_leader', branchId: 'b2', approved: true },
+      { id: 'u3', name: '黃支部領袖', email: 'leader-scout@example.com', password: 'leader123', role: 'branch_leader', branchId: 'b3', approved: true },
+      { id: 'u4', name: '何教練員', email: 'coach@example.com', password: 'coach123', role: 'coach', branchId: 'b4', approved: true },
+      { id: 'u5', name: '王家長', email: 'parent@example.com', password: 'parent123', role: 'parent', approved: true },
+      { id: 'u6', name: '王小明', email: 'member@example.com', password: 'member123', role: 'member', branchId: 'b3', memberId: 'm1', approved: true },
+    ],
+    leaderApplications: [
+      { id: 'la1', name: '張教練', email: 'newcoach@example.com', requestedRole: 'coach', branchId: 'b2', phone: '9000 1111', experience: '曾協助幼童軍集會及戶外活動。', status: 'pending', createdAt: new Date().toISOString() },
+      { id: 'la2', name: '林團長申請', email: 'newgsl@example.com', requestedRole: 'group_leader', branchId: 'b4', phone: '9000 2222', experience: '現任深資活動負責人，申請團長權限。', status: 'pending', createdAt: new Date().toISOString() },
     ],
     members: [
-      { id: 'm1', name: '王小明', branchId: 'b1', patrol: '猛虎小隊', ymNumber: 'YM001', parentUserId: 'u4', emergencyPhone: '9123 4567' },
-      { id: 'm2', name: '王小美', branchId: 'b2', patrol: '海豚小隊', ymNumber: 'YM002', parentUserId: 'u4', emergencyPhone: '9123 4567' },
-      { id: 'm3', name: '陳志豪', branchId: 'b1', patrol: '雄鷹小隊', ymNumber: 'YM003', parentUserId: undefined, emergencyPhone: '9234 5678' },
-      { id: 'm4', name: '林雅晴', branchId: 'b3', patrol: '深資小隊', ymNumber: 'YM004', parentUserId: undefined, emergencyPhone: '9345 6789' },
+      { id: 'm1', name: '王小明', branchId: 'b3', patrol: '猛虎小隊', ymNumber: 'YM001', parentUserId: 'u5', emergencyPhone: '9123 4567', dateOfBirth: '2012-03-15', school: '筲箕灣官立小學', rank: '會員' },
+      { id: 'm2', name: '王小美', branchId: 'b2', patrol: '紅花六', ymNumber: 'YM002', parentUserId: 'u5', emergencyPhone: '9123 4567', dateOfBirth: '2015-07-20', school: '東區小學', rank: '會員' },
+      { id: 'm3', name: '陳志豪', branchId: 'b3', patrol: '雄鷹小隊', ymNumber: 'YM003', parentUserId: undefined, emergencyPhone: '9234 5678', rank: '小隊長' },
+      { id: 'm4', name: '林雅晴', branchId: 'b4', patrol: '深資小隊', ymNumber: 'YM004', parentUserId: undefined, emergencyPhone: '9345 6789', rank: '會員' },
     ],
     events: [
-      { id: 'e1', branchId: 'b1', title: '露營技能訓練日', date: addDays(14), location: '大潭童軍中心', quota: 30, fee: '$80', description: '繩結、營藝、野外煮食訓練。', status: 'published', targetMemberIds: ['m1', 'm3'], createdBy: 'u2', createdAt: new Date().toISOString() },
-      { id: 'e2', branchId: 'b2', title: '社區服務探訪', date: addDays(21), location: '區內長者中心', quota: 18, fee: '$0', description: '探訪長者及服務學習。', status: 'published', targetMemberIds: ['m2'], createdBy: 'u3', createdAt: new Date().toISOString() },
-      { id: 'e3', branchId: 'b1', title: '已完結遠足活動', date: addDays(-7), location: '龍脊', quota: 24, fee: '$20', description: '過期活動示範，列表預設會隱藏。', status: 'archived', targetMemberIds: ['m1'], createdBy: 'u2', createdAt: new Date().toISOString() },
+      { id: 'e1', branchId: 'b3', scope: 'branch', title: '童軍露營技能訓練日', date: addDays(14), location: '大潭童軍中心', quota: 30, fee: '$80', description: '繩結、營藝、野外煮食訓練。', status: 'published', targetMemberIds: ['m1', 'm3'], createdBy: 'u3', createdAt: new Date().toISOString(), source: 'manual' },
+      { id: 'e2', branchId: 'b2', scope: 'branch', title: '幼童軍社區服務探訪', date: addDays(21), location: '區內長者中心', quota: 18, fee: '$0', description: '探訪長者及服務學習。', status: 'published', targetMemberIds: ['m2'], createdBy: 'u2', createdAt: new Date().toISOString(), source: 'manual' },
+      { id: 'e3', scope: 'troop', title: '全旅周年大會操', date: addDays(28), location: '區內運動場', quota: 120, fee: '$0', description: '全旅成員、家長及領袖參與。', status: 'published', targetMemberIds: ['m1', 'm2', 'm3', 'm4'], createdBy: 'u1', createdAt: new Date().toISOString(), source: 'manual' },
+      { id: 'e4', scope: 'training', title: '地域領袖訓練班（童軍圖書館接入示範）', date: addDays(45), location: '香港童軍中心', quota: 40, fee: '$120', description: '未來會由童軍圖書館或公開活動來源同步。', status: 'published', targetMemberIds: [], createdBy: 'system', createdAt: new Date().toISOString(), source: 'scout_library' },
     ],
     replies: [
-      { id: 'r1', eventId: 'e1', memberId: 'm1', parentUserId: 'u4', status: 'pending' },
-      { id: 'r2', eventId: 'e2', memberId: 'm2', parentUserId: 'u4', status: 'yes', note: '準時出席', updatedAt: new Date().toISOString() },
+      { id: 'r1', eventId: 'e1', memberId: 'm1', parentUserId: 'u5', status: 'pending' },
+      { id: 'r2', eventId: 'e2', memberId: 'm2', parentUserId: 'u5', status: 'yes', note: '準時出席', updatedAt: new Date().toISOString() },
+      { id: 'r3', eventId: 'e3', memberId: 'm1', parentUserId: 'u5', status: 'pending' },
+      { id: 'r4', eventId: 'e3', memberId: 'm2', parentUserId: 'u5', status: 'pending' },
     ],
     notifications: [
-      { id: 'n1', parentUserId: 'u4', eventId: 'e1', memberId: 'm1', status: 'queued', channel: 'future', createdAt: new Date().toISOString() },
-      { id: 'n2', parentUserId: 'u4', eventId: 'e2', memberId: 'm2', status: 'read', channel: 'future', createdAt: new Date().toISOString() },
+      { id: 'n1', parentUserId: 'u5', eventId: 'e1', memberId: 'm1', status: 'queued', channel: 'future', createdAt: new Date().toISOString() },
+      { id: 'n2', parentUserId: 'u5', eventId: 'e2', memberId: 'm2', status: 'read', channel: 'future', createdAt: new Date().toISOString() },
     ],
   };
 }
@@ -133,18 +175,16 @@ export function getData(): AppData {
     return data;
   }
   try {
-    return JSON.parse(raw) as AppData;
+    const parsed = JSON.parse(raw) as AppData;
+    if (!parsed.leaderApplications) return resetData();
+    return parsed;
   } catch {
-    const data = seedData();
-    saveData(data);
-    return data;
+    return resetData();
   }
 }
 
 export function saveData(data: AppData) {
-  if (typeof window !== 'undefined') {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }
+  if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
 export function resetData() {
@@ -176,18 +216,37 @@ export function isFutureEvent(event: Event) {
 }
 
 export function visibleBranchesFor(user: User, data: AppData) {
-  if (user.role === 'commissioner') return data.branches;
-  if (user.branchId) return data.branches.filter(b => b.id === user.branchId);
+  if (adminRoles.includes(user.role)) return data.branches;
+  if (leaderRoles.includes(user.role) && user.branchId) return data.branches.filter(b => b.id === user.branchId);
+  if (user.role === 'member' && user.branchId) return data.branches.filter(b => b.id === user.branchId);
+  if (user.role === 'parent') {
+    const ids = new Set(data.members.filter(m => m.parentUserId === user.id).map(m => m.branchId));
+    return data.branches.filter(b => ids.has(b.id));
+  }
   return [];
 }
 
-export function canSeeBranch(user: User, branchId: string) {
-  if (user.role === 'commissioner') return true;
-  if (user.role === 'group_leader' || user.role === 'leader') return user.branchId === branchId;
+export function canManageAll(user: User) {
+  return adminRoles.includes(user.role);
+}
+
+export function canManageBranch(user: User, branchId?: string) {
+  if (!branchId) return adminRoles.includes(user.role);
+  if (adminRoles.includes(user.role)) return true;
+  if (leaderRoles.includes(user.role)) return user.branchId === branchId;
+  return false;
+}
+
+export function canViewBranch(user: User, branchId?: string) {
+  if (!branchId) return adminRoles.includes(user.role);
+  if (adminRoles.includes(user.role)) return true;
+  if ((leaderRoles.includes(user.role) || user.role === 'member') && user.branchId === branchId) return true;
+  if (user.role === 'parent') return getData().members.some(m => m.parentUserId === user.id && m.branchId === branchId);
   return false;
 }
 
 export function getBranchName(data: AppData, branchId?: string) {
+  if (!branchId) return '全旅 / 外部活動';
   return data.branches.find(b => b.id === branchId)?.name || '未指定';
 }
 
@@ -211,12 +270,7 @@ export function createEventWithReplies(data: AppData, event: Omit<Event, 'id' | 
   const newNotifications: Notification[] = newReplies
     .filter(r => !!r.parentUserId)
     .map(r => ({ id: uid('n'), parentUserId: r.parentUserId!, eventId: id, memberId: r.memberId, status: 'queued', channel: 'future', createdAt: new Date().toISOString() }));
-  return {
-    ...data,
-    events: [newEvent, ...data.events],
-    replies: [...newReplies, ...data.replies],
-    notifications: [...newNotifications, ...data.notifications],
-  };
+  return { ...data, events: [newEvent, ...data.events], replies: [...newReplies, ...data.replies], notifications: [...newNotifications, ...data.notifications] };
 }
 
 export function registerParentAccount(name: string, email: string, childYmNumbers: string[]) {
@@ -228,4 +282,12 @@ export function registerParentAccount(name: string, email: string, childYmNumber
   const next = { ...data, users: [parent, ...data.users], members };
   saveData(next);
   return parent;
+}
+
+export function submitLeaderApplication(input: Omit<LeaderApplication, 'id' | 'status' | 'createdAt'>) {
+  const data = getData();
+  const application: LeaderApplication = { ...input, id: uid('la'), status: 'pending', createdAt: new Date().toISOString() };
+  const next = { ...data, leaderApplications: [application, ...data.leaderApplications] };
+  saveData(next);
+  return application;
 }
