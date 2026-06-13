@@ -33,8 +33,6 @@ export default function ApplyPage() {
   const [ymNumbers, setYmNumbers] = useState('');
   const [childNames, setChildNames] = useState('');
   const [notes, setNotes] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -42,16 +40,6 @@ export default function ApplyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (password !== confirmPassword) {
-      setError('兩次輸入的密碼不一致');
-      return;
-    }
-    if (password.length < 4) {
-      setError('密碼長度至少 4 位');
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -65,19 +53,16 @@ export default function ApplyPage() {
           + '&branchId=' + encodeURIComponent(branchId)
           + '&childYmNumbers=' + encodeURIComponent(ymNumbers)
           + '&childNames=' + encodeURIComponent(childNames)
-          + '&password=' + encodeURIComponent(password)
           + '&notes=' + encodeURIComponent(notes);
       } else {
-        // leader, member, admin 都走 applyLeader
         url = APPS_SCRIPT_URL
           + '?action=applyLeader'
           + '&name=' + encodeURIComponent(name)
           + '&email=' + encodeURIComponent(email)
           + '&phone=' + encodeURIComponent(phone)
           + '&role=' + encodeURIComponent(role)
-          + '&branchId=' + encodeURIComponent(branchId)
-          + '&experience=' + encodeURIComponent(notes)
-          + '&password=' + encodeURIComponent(password);
+          + '&branchId=' + encodeURIComponent(type === 'admin' ? '' : branchId)
+          + '&experience=' + encodeURIComponent(notes);
         if (type === 'member') {
           url += '&ymNumbers=' + encodeURIComponent(ymNumbers);
         }
@@ -104,7 +89,7 @@ export default function ApplyPage() {
         <section className="card" style={{ background: '#f0fff4', border: '1px solid #ccffcc' }}>
           <span className="badge green">申請已提交</span>
           <h2>提交成功</h2>
-          <p className="muted">你的申請已提交，請等待管理員或團長審批。審批通過後即可用電郵和密碼登入。</p>
+          <p className="muted">你的申請已提交，請等待管理員或團長審批。審批通過後即可用電郵登入。</p>
           <button className="btn primary" onClick={() => router.push('/login')}>前往登入</button>
         </section>
       </div>
@@ -133,7 +118,7 @@ export default function ApplyPage() {
             <input className="w-full border rounded-lg px-3 py-2" value={name} onChange={e => setName(e.target.value)} required />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">電郵 / 登入帳戶 *</label>
+            <label className="block text-sm font-medium mb-1">電郵 *</label>
             <input type="email" className="w-full border rounded-lg px-3 py-2" value={email} onChange={e => setEmail(e.target.value)} required />
           </div>
           <div>
@@ -141,12 +126,14 @@ export default function ApplyPage() {
             <input className="w-full border rounded-lg px-3 py-2" value={phone} onChange={e => setPhone(e.target.value)} />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">所屬支部</label>
-            <select className="select w-full" value={branchId} onChange={e => setBranchId(e.target.value)}>
-              {BRANCHES.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          </div>
+          {type !== 'admin' && (
+            <div>
+              <label className="block text-sm font-medium mb-1">所屬支部</label>
+              <select className="select w-full" value={branchId} onChange={e => setBranchId(e.target.value)}>
+                {BRANCHES.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </div>
+          )}
 
           {(type === 'leader' || type === 'admin') && (
             <div>
@@ -176,15 +163,6 @@ export default function ApplyPage() {
           <div>
             <label className="block text-sm font-medium mb-1">備註 / 經驗（可留空）</label>
             <textarea className="w-full border rounded-lg px-3 py-2" rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder={type === 'leader' || type === 'admin' ? '簡述你的童軍經驗...' : '其他備註...'} />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">密碼 *</label>
-            <input type="password" className="w-full border rounded-lg px-3 py-2" value={password} onChange={e => setPassword(e.target.value)} required />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">確認密碼 *</label>
-            <input type="password" className="w-full border rounded-lg px-3 py-2" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
           </div>
 
           {error && (
