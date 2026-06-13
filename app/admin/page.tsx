@@ -83,7 +83,11 @@ function AdminInner() {
       {stats && (
         <section className="grid">
           <div className="card"><span className="badge blue">用戶</span><h2>{stats.totalUsers || 0}</h2><p className="muted">總用戶數</p></div>
-          <div className="card"><span className="badge red">待審批</span><h2>{stats.pendingApplications || 0}</h2><p className="muted">待處理申請</p></div>
+          <Link href="/admin/parents" className="card group" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <span className="badge red">待審批</span>
+            <h2>{stats.pendingApplications || 0}</h2>
+            <p className="muted">待處理申請 → 前往審核</p>
+          </Link>
           <div className="card"><span className="badge green">活動</span><h2>{stats.totalEvents || 0}</h2><p className="muted">已發布活動</p></div>
           <div className="card"><span className="badge gold">通告</span><h2>{stats.totalBookmarks || 0}</h2><p className="muted">圖書館收藏</p></div>
           <div className="card"><span className="badge blue">成員</span><h2>{stats.totalMembers || 0}</h2><p className="muted">總成員數</p></div>
@@ -92,7 +96,10 @@ function AdminInner() {
 
       {applications.length > 0 && (
         <section className="card stack">
-          <h2>待審批申請</h2>
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2>待審批申請</h2>
+            <Link href="/admin/parents" className="btn" style={{ fontSize: 14 }}>查看全部 / 申請管理 →</Link>
+          </div>
           {applications.map(app => (
             <div key={app.applicationId || app.id} className="card" style={{ boxShadow: 'none' }}>
               <div className="row" style={{ justifyContent: 'space-between' }}>
@@ -112,7 +119,7 @@ function AdminInner() {
       <section className="grid">
         <FeatureCard title="支部管理" icon="🏢" text="管理所有支部資料、新增或編輯支部。" href="/admin/branches" />
         <FeatureCard title="成員資料庫" icon="👥" text="查看及管理所有支部的成員資料。" href="/admin/members" />
-        <FeatureCard title="家長審核" icon="✅" text="審核家長申請及子女綁定請求。" href="/admin/parents" />
+        <FeatureCard title="家長審核 / 申請管理" icon="✅" text="審核家長、領袖、成員的註冊申請，可批核或拒絕。" href="/admin/parents" />
         <FeatureCard title="活動管理" icon="🗓️" text="新增、發布及管理全旅活動。" href="/admin/events" />
         <FeatureCard title="圖書館標記" icon="📚" text="標記本旅需要的圖書館通告。" href="/library" />
         <FeatureCard title="通告管理" icon="📄" text="上傳及管理通告檔案。" href="/notices" />

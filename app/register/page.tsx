@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import PrivacyConsent, { usePrivacyConsent } from '@/components/PrivacyConsent';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 
@@ -17,21 +18,12 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  // 用 ref 保存最後一次表單資料，待私隱同意後再送出
+  const pendingSubmit = useRef<(() => void) | null>(null);
 
-    if (password !== confirmPassword) {
-      setError('兩次輸入的密碼不一致');
-      return;
-    }
-    if (password.length < 4) {
-      setError('密碼長度至少 4 位');
-      return;
-    }
-
+  const doSubmit = async () => {
     setLoading(true);
-
+    setError('');
     try {
       const url = APPS_SCRIPT_URL
         + '?action=registerParent'
@@ -56,6 +48,29 @@ export default function RegisterPage() {
     }
   };
 
+  // 私隱同意流程
+  const { open, requestConsent, agree, close } = usePrivacyConsent(() => {
+    if (pendingSubmit.current) pendingSubmit.current();
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (password !== confirmPassword) {
+      setError('兩次輸入的密碼不一致');
+      return;
+    }
+    if (password.length < 4) {
+      setError('密碼長度至少 4 位');
+      return;
+    }
+
+    // 先彈出私隱說明；同意後才送出
+    pendingSubmit.current = doSubmit;
+    requestConsent();
+  };
+
   if (success) {
     return (
       <div className="stack" style={{ maxWidth: 480, margin: '60px auto' }}>
@@ -74,6 +89,12 @@ export default function RegisterPage() {
       <section className="card">
         <h1>家長註冊</h1>
         <p className="muted">註冊後需等待領袖審批。請準確填寫子女 YM 編號以便系統自動關聯。</p>
+
+        {/* 私隱摘要（常駐顯示） */}
+        <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: 12, fontSize: 13, marginBottom: 8 }}>
+          🔒 本系統不收集敏感資料，資料僅用作系統內部用途，並儲存於 Google 雲端硬碟內。提交時將再顯示完整聲明。
+        </div>
+
         <form onSubmit={handleSubmit} className="stack">
           <div>
             <label className="block text-sm font-medium mb-1">姓名</label>
@@ -112,6 +133,8 @@ export default function RegisterPage() {
           <a href="/login" className="btn">已有帳戶？登入</a>
         </div>
       </section>
+
+      <PrivacyConsent open={open} onAgree={agree} onClose={close} />
     </div>
   );
 }

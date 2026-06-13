@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import PrivacyConsent, { usePrivacyConsent } from '@/components/PrivacyConsent';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 
@@ -28,6 +29,8 @@ export default function ApplyPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [branchId, setBranchId] = useState('b1');
   const [role, setRole] = useState('group_leader');
   const [ymNumbers, setYmNumbers] = useState('');
@@ -37,11 +40,11 @@ export default function ApplyPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  const pendingSubmit = useRef<(() => void) | null>(null);
 
+  const doSubmit = async () => {
+    setLoading(true);
+    setError('');
     try {
       let url = '';
       if (type === 'parent') {
@@ -50,6 +53,7 @@ export default function ApplyPage() {
           + '&name=' + encodeURIComponent(name)
           + '&email=' + encodeURIComponent(email)
           + '&phone=' + encodeURIComponent(phone)
+          + '&password=' + encodeURIComponent(password)
           + '&branchId=' + encodeURIComponent(branchId)
           + '&childYmNumbers=' + encodeURIComponent(ymNumbers)
           + '&childNames=' + encodeURIComponent(childNames)
@@ -60,6 +64,7 @@ export default function ApplyPage() {
           + '&name=' + encodeURIComponent(name)
           + '&email=' + encodeURIComponent(email)
           + '&phone=' + encodeURIComponent(phone)
+          + '&password=' + encodeURIComponent(password)
           + '&role=' + encodeURIComponent(role)
           + '&branchId=' + encodeURIComponent(type === 'admin' ? '' : branchId)
           + '&experience=' + encodeURIComponent(notes);
@@ -83,13 +88,34 @@ export default function ApplyPage() {
     }
   };
 
+  const { open, requestConsent, agree, close } = usePrivacyConsent(() => {
+    if (pendingSubmit.current) pendingSubmit.current();
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (password !== confirmPassword) {
+      setError('兩次輸入的密碼不一致');
+      return;
+    }
+    if (password.length < 4) {
+      setError('密碼長度至少 4 位');
+      return;
+    }
+
+    pendingSubmit.current = doSubmit;
+    requestConsent();
+  };
+
   if (success) {
     return (
       <div className="stack" style={{ maxWidth: 480, margin: '60px auto' }}>
         <section className="card" style={{ background: '#f0fff4', border: '1px solid #ccffcc' }}>
           <span className="badge green">申請已提交</span>
           <h2>提交成功</h2>
-          <p className="muted">你的申請已提交，請等待管理員或團長審批。審批通過後即可用電郵登入。</p>
+          <p className="muted">你的申請已提交，請等待管理員或團長審批。審批通過後即可用電郵和密碼登入。</p>
           <button className="btn primary" onClick={() => router.push('/login')}>前往登入</button>
         </section>
       </div>
@@ -101,6 +127,11 @@ export default function ApplyPage() {
       <section className="card">
         <h1>申請加入系統</h1>
         <p className="muted">統一申請頁面。家長、領袖、成員、管理員均可在此申請。正式身份以總會 / YMIS 登記為準。</p>
+
+        {/* 私隱摘要 */}
+        <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: 12, fontSize: 13, marginBottom: 8 }}>
+          🔒 本系統不收集敏感資料，資料僅用作系統內部用途，並儲存於 Google 雲端硬碟內。提交時將再顯示完整聲明。
+        </div>
 
         <form onSubmit={handleSubmit} className="stack">
           <div>
@@ -161,6 +192,15 @@ export default function ApplyPage() {
           )}
 
           <div>
+            <label className="block text-sm font-medium mb-1">密碼 *（登入用）</label>
+            <input type="password" className="w-full border rounded-lg px-3 py-2" value={password} onChange={e => setPassword(e.target.value)} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">確認密碼 *</label>
+            <input type="password" className="w-full border rounded-lg px-3 py-2" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+          </div>
+
+          <div>
             <label className="block text-sm font-medium mb-1">備註 / 經驗（可留空）</label>
             <textarea className="w-full border rounded-lg px-3 py-2" rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder={type === 'leader' || type === 'admin' ? '簡述你的童軍經驗...' : '其他備註...'} />
           </div>
@@ -181,6 +221,8 @@ export default function ApplyPage() {
           <a href="/" className="btn">返回首頁</a>
         </div>
       </section>
+
+      <PrivacyConsent open={open} onAgree={agree} onClose={close} />
     </div>
   );
 }
