@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
+const SESSION_KEY = 'scout-system-session-v2';
+const CURRENT_USER_KEY = 'currentUser';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -24,11 +26,11 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (data.success && data.user) {
-        // 登入成功，儲存使用者資訊
-        localStorage.setItem('currentUser', JSON.stringify(data.user));
+        // 統一寫入兩個 key，兼容 troupeStore 和舊版 login
+        localStorage.setItem(SESSION_KEY, data.user.userId);
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(data.user));
         localStorage.setItem('isLoggedIn', 'true');
 
-        // 跳轉到後台
         router.push('/admin');
       } else {
         setError(data.error || '登入失敗');
@@ -41,48 +43,41 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-6">
-      <h1 className="text-2xl font-bold mb-6">登入系統</h1>
-
-      <form onSubmit={handleLogin} className="space-y-4">
-        <div>
-          <label className="block text-sm mb-1">電子郵件</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm mb-1">密碼</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-            required
-          />
-        </div>
-
-        {error && (
-          <div className="text-red-600 text-sm">{error}</div>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium disabled:bg-gray-400"
-        >
-          {loading ? '登入中...' : '登入'}
-        </button>
-      </form>
-
-      <p className="text-center text-sm text-gray-500 mt-6">
-        目前僅開放超級管理員登入
-      </p>
+    <div className="stack" style={{ maxWidth: 480, margin: '60px auto' }}>
+      <section className="card">
+        <h1>登入系統</h1>
+        <p className="muted">目前僅開放超級管理員登入</p>
+        <form onSubmit={handleLogin} className="stack">
+          <div>
+            <label className="block text-sm font-medium mb-1">電子郵件</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">密碼</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2"
+              required
+            />
+          </div>
+          {error && (
+            <div className="card" style={{ background: '#fff0f0', border: '1px solid #ffcccc' }}>
+              <p style={{ color: 'var(--red)' }}>{error}</p>
+            </div>
+          )}
+          <button type="submit" className="btn primary" disabled={loading}>
+            {loading ? '登入中...' : '登入'}
+          </button>
+        </form>
+      </section>
     </div>
   );
 }

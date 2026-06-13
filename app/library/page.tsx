@@ -34,6 +34,7 @@ export default function LibraryPage() {
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [connected, setConnected] = useState(false);
   const [status, setStatus] = useState<LibraryBookmarkStatus | 'all'>('all');
   const [branch, setBranch] = useState('all');
 
@@ -49,6 +50,7 @@ export default function LibraryPage() {
         if (!cancelled) {
           if (data.success && data.data) {
             setBookmarks(data.data);
+            setConnected(true);
           } else {
             setError(data.error || '載入失敗');
           }
@@ -78,6 +80,12 @@ export default function LibraryPage() {
       {error && (
         <section className="card" style={{ background: '#fff0f0', border: '1px solid #ffcccc' }}>
           <p style={{ color: 'var(--red)' }}>⚠️ 無法連接後端：{error}</p>
+          <p className="muted">若持續出錯，請檢查 Apps Script 是否已重新部署（Deploy → New deployment）。</p>
+        </section>
+      )}
+      {connected && !error && (
+        <section className="card" style={{ background: '#f0fff4', border: '1px solid #ccffcc' }}>
+          <p style={{ color: 'var(--green)' }}>🟢 已連接 Google Sheet · 共 {bookmarks.length} 筆書籤</p>
         </section>
       )}
       <section className="hero">

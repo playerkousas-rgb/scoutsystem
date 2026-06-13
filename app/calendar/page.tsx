@@ -26,6 +26,15 @@ function parseLocalDate(value: string) {
   return new Date(y, (m || 1) - 1, d || 1);
 }
 
+function normalizeDate(value: any): string {
+  if (!value) return '';
+  if (typeof value === 'string') {
+    // 兼容 ISO 格式如 2026-06-15T00:00:00.000Z
+    return value.slice(0, 10);
+  }
+  return String(value);
+}
+
 function getBranchName(branches: { id: string; name: string }[], branchId?: string) {
   if (!branchId) return '全旅 / 外部活動';
   return branches.find(b => b.id === branchId)?.name || '未指定';
@@ -50,6 +59,7 @@ export default function CalendarPage() {
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [connected, setConnected] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(() => monthKey(new Date()));
   const [scope, setScope] = useState<EventScope | 'all'>('all');
 
@@ -64,8 +74,15 @@ export default function CalendarPage() {
         const data = await res.json();
         if (!cancelled) {
           if (data.success && data.data) {
-            setEvents(data.data.events || []);
+            // 標準化日期格式（兼容 ISO 或 yyyy-MM-dd）
+            const normalizedEvents = (data.data.events || []).map((e: any) => ({
+              ...e,
+              date: normalizeDate(e.date),
+              endDate: e.endDate ? normalizeDate(e.endDate) : undefined,
+            }));
+            setEvents(normalizedEvents);
             setBranches(data.data.branches || []);
+            setConnected(true);
           } else {
             setError(data.error || '載入失敗');
           }
@@ -122,6 +139,12 @@ export default function CalendarPage() {
       {error && (
         <section className="card" style={{ background: '#fff0f0', border: '1px solid #ffcccc' }}>
           <p style={{ color: 'var(--red)' }}>⚠️ 無法連接後端：{error}</p>
+          <p className="muted">若持續出錯，請檢查 Apps Script 是否已重新部署（Deploy → New deployment）。</p>
+        </section>
+      )}
+      {connected && !error && (
+        <section className="card" style={{ background: '#f0fff4', border: '1px solid #ccffcc' }}>
+          <p style={{ color: 'var(--green)' }}>🟢 已連接 Google Sheet · 共 {events.length} 筆活動</p>
         </section>
       )}
       <section className="hero">
