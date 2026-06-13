@@ -21,7 +21,6 @@ function NavBar() {
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
 
   useEffect(() => {
-    // 同時兼容 login 頁和 troupeStore 的 key
     try {
       const raw = localStorage.getItem('currentUser');
       if (raw) {
@@ -33,7 +32,6 @@ function NavBar() {
       }
     } catch {}
 
-    // fallback 讀 troupeStore 的 session
     try {
       const sessionId = localStorage.getItem('scout-system-session-v2');
       if (sessionId) {
@@ -57,19 +55,36 @@ function NavBar() {
     window.location.href = '/';
   };
 
+  const getDashboardHref = () => {
+    if (!user) return '/login';
+    switch (user.role) {
+      case 'super_admin': return '/admin';
+      case 'admin': return '/admin';
+      case 'group_leader': return '/leader';
+      case 'branch_leader': return '/leader';
+      case 'coach': return '/leader';
+      case 'parent': return '/parent';
+      case 'member': return '/member';
+      default: return '/login';
+    }
+  };
+
   return (
     <header style={{ borderBottom: '1px solid var(--line)', background: 'white', position: 'sticky', top: 0, zIndex: 50 }}>
-      <div className="row" style={{ maxWidth: 1100, margin: '0 auto', padding: '12px 20px', justifyContent: 'space-between' }}>
+      <div className="row" style={{ maxWidth: 1100, margin: '0 auto', padding: '12px 20px', justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <Link href="/" style={{ fontWeight: 800, fontSize: 18, color: 'var(--blue)', textDecoration: 'none' }}>
           ScoutSystem
         </Link>
-        <div className="row" style={{ gap: 12 }}>
+        <div className="row" style={{ gap: 10 }}>
           <Link href="/calendar" className="btn" style={{ padding: '6px 12px', fontSize: 14 }}>行事曆</Link>
           <Link href="/activities" className="btn" style={{ padding: '6px 12px', fontSize: 14 }}>活動</Link>
           <Link href="/library" className="btn" style={{ padding: '6px 12px', fontSize: 14 }}>圖書館</Link>
           {user ? (
             <div className="row" style={{ gap: 8 }}>
-              <span className="badge blue">{user.name}</span>
+              <Link href={getDashboardHref()} className="btn primary" style={{ padding: '6px 12px', fontSize: 14 }}>
+                控制台
+              </Link>
+              <span className="badge blue" style={{ fontSize: 12, padding: '4px 8px' }}>{user.name}</span>
               <button className="btn" style={{ padding: '6px 12px', fontSize: 14 }} onClick={handleLogout}>登出</button>
             </div>
           ) : (

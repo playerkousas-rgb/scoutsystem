@@ -2,12 +2,13 @@
 
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 
-const BRANCHES = ['全旅', '小童軍', '幼童軍', '童軍', '深資'];
+const BRANCHES = ['全旅', '小童軍', '幼童軍', '童軍', '深資童軍', '樂行童軍'];
 const AUDIENCES = ['成員', '家長', '領袖', '團長'];
+const ACTIVITY_TYPES = ['訓練班', '服務', '活動', '比賽', '考驗日', '工作坊', '其他'];
 
 function getUser() {
   try {
@@ -121,7 +122,7 @@ function ImportForm() {
       <section className="hero">
         <span className="badge gold">加入本旅通告</span>
         <h1>{title || '新通告'}</h1>
-        <p className="muted">{sourceSite} · {region} · 官方截止：{officialDeadline || '-'}</p>
+        <p className="muted">{sourceSite} · {region} · 官方截止：{officialDeadline || '（未必準確）'}</p>
         <div className="row" style={{ gap: 8 }}>
           {sourceUrl && <a href={sourceUrl} target="_blank" className="btn">開啟來源</a>}
           {attachmentUrl && <a href={attachmentUrl} target="_blank" className="btn primary">開啟附件</a>}
@@ -134,12 +135,7 @@ function ImportForm() {
             <label className="muted" style={{ fontSize: 13 }}>活動類型</label>
             <select className="select w-full" value={activityType} onChange={e => setActivityType(e.target.value)}>
               <option value="">未分類</option>
-              <option value="訓練班">訓練班</option>
-              <option value="服務日">服務日</option>
-              <option value="營期">營期</option>
-              <option value="比賽">比賽</option>
-              <option value="集會">集會</option>
-              <option value="其他">其他</option>
+              {ACTIVITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
           <div>
