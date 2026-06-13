@@ -6,11 +6,14 @@ export default function HomePage() {
       {/* Hero 區 */}
       <section className="hero">
         <span className="badge gold">Step 1 · 身份及控制台 UI</span>
+        
         <h1>ScoutSystem 旅團管理與協作系統</h1>
+        
         <p>
-          整合成員管理、活動報名、圖書館通告與專科徽章的數位平台。
+          這一版先建立各身份入口及控制台：超級管理員、管理員、團長、支部領袖、教練員、家長、成員。
           後台暫用 localStorage 模擬，下一步會逐 Part 接入 Google Sheet 與 Apps Script。
         </p>
+
         <div className="row">
           <Link className="btn primary" href="/login">🚀 登入系統</Link>
           <Link className="btn gold" href="/apply">申請加入</Link>
