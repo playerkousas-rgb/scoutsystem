@@ -19,8 +19,23 @@ function isFutureEvent(date: string) {
   return date >= new Date().toISOString().slice(0, 10);
 }
 
+type ActivityEvent = {
+  id: string;
+  branchId?: string;
+  scope: EventScope;
+  title: string;
+  date: string;
+  endDate?: string;
+  location: string;
+  quota?: number;
+  fee?: string;
+  description: string;
+  status: string;
+  source?: string;
+};
+
 export default function ActivitiesPage() {
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -37,7 +52,7 @@ export default function ActivitiesPage() {
         const data = await res.json();
         if (!cancelled) {
           if (data.success && data.data) {
-            const normalized = (data.data.events || []).map((e: any) => ({
+            const normalized: ActivityEvent[] = (data.data.events || []).map((e: any) => ({
               ...e,
               date: normalizeDate(e.date),
             }));
@@ -60,9 +75,9 @@ export default function ActivitiesPage() {
 
   const filteredEvents = useMemo(() => {
     return events
-      .filter((e: any) => e.status === 'published' && isFutureEvent(e.date))
-      .filter((e: any) => scope === 'all' || e.scope === scope)
-      .sort((a: any, b: any) => a.date.localeCompare(b.date));
+      .filter(e => e.status === 'published' && isFutureEvent(e.date))
+      .filter(e => scope === 'all' || e.scope === scope)
+      .sort((a, b) => a.date.localeCompare(b.date));
   }, [events, scope]);
 
   if (loading) return <div className="stack" style={{ padding: 40 }}>載入中...</div>;
@@ -91,7 +106,7 @@ export default function ActivitiesPage() {
         </div>
       </section>
       <section className="card stack">
-        {filteredEvents.map((e: any) => (
+        {filteredEvents.map(e => (
           <div className="card" style={{ boxShadow: 'none' }} key={e.id}>
             <div className="row" style={{ justifyContent: 'space-between' }}>
               <div>
