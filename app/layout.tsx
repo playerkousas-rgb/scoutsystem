@@ -36,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* 全站 Footer */}
         <footer className="border-t bg-white py-6 text-center text-sm text-gray-500">
-          © 2026 82nd Hong Kong Group ScoutSystem
+          © 2026 SKWSCOUT ScoutSystem
         </footer>
       </body>
     </html>
