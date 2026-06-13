@@ -2,55 +2,138 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { getBranchName, getCurrentUser, getData, getReplySummary, isFutureEvent, leaderRoles, roleLabel, saveData, setCurrentUser, type AppData, type User } from '@/lib/troupeStore';
+import AuthGate from '@/components/AuthGate';
 
-export default function LeaderPage() {
-  const [data, setData] = useState<AppData | null>(null);
-  const [user, setUser] = useState<User | undefined>();
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
+
+const leaderRoles: string[] = ['group_leader', 'branch_leader', 'coach'];
+
+function getUser() {
+  try {
+    const raw = localStorage.getItem('currentUser');
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p?.userId) return p;
+    }
+  } catch {}
+  return null;
+}
+
+function LeaderInner() {
+  const [stats, setStats] = useState<any>(null);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const user = getUser();
 
   useEffect(() => {
-    const d = getData();
-    const current = getCurrentUser();
-    if (current) setCurrentUser(current.id);
-    setData(d); setUser(current);
-  }, []);
+    if (!user) return;
+    async function load() {
+      try {
+        const [dashRes, appRes] = await Promise.all([
+          fetch(`${APPS_SCRIPT_URL}?action=getDashboardData&userId=${encodeURIComponent(user.userId)}`, { cache: 'no-store' }),
+          fetch(`${APPS_SCRIPT_URL}?action=getPendingApplications&userId=${encodeURIComponent(user.userId)}`, { cache: 'no-store' }),
+        ]);
+        const dashData = await dashRes.json();
+        const appData = await appRes.json();
 
-  if (!data || !user || !leaderRoles.includes(user.role)) return <div className="card stack"><h2>請先登入領袖帳戶。</h2><Link className="btn primary" href="/login">前往登入</Link><Link className="btn gold" href="/leader/apply">申請領袖 / 教練員帳戶</Link></div>;
+        if (dashData.success) setStats(dashData.data);
+        if (appData.success) setApplications(appData.data || []);
+      } catch (err: any) {
+        setError(err.message || '載入失敗');
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [user]);
 
-  const branch = data.branches.find(b => b.id === user.branchId);
-  const members = data.members.filter(m => m.branchId === user.branchId);
-  const events = data.events.filter(e => isFutureEvent(e) && (e.scope === 'troop' || e.branchId === user.branchId || !e.branchId));
-  const applications = data.leaderApplications.filter(a => a.branchId === user.branchId && a.status === 'pending');
-  const canApproveBranchStaff = user.role === 'group_leader';
+  const canApprove = user?.role === 'group_leader' || user?.role === 'branch_leader';
 
-  const approveStaff = (id: string) => {
-    const app = data.leaderApplications.find(a => a.id === id);
-    if (!app || !canApproveBranchStaff || app.requestedRole === 'group_leader') return;
-    const next = {
-      ...data,
-      users: [{ id: `u_${Date.now()}`, name: app.name, email: app.email, password: 'temp123', role: app.requestedRole, branchId: app.branchId, approved: true, createdBy: user.id }, ...data.users],
-      leaderApplications: data.leaderApplications.map(a => a.id === id ? { ...a, status: 'approved' as const, approvedBy: user.id } : a),
-    };
-    saveData(next); setData(next);
+  const approve = async (appId: string) => {
+    if (!confirm('確定審批此申請？')) return;
+    try {
+      const res = await fetch(`${APPS_SCRIPT_URL}?action=approveApplication&applicationId=${encodeURIComponent(appId)}&approvedBy=${encodeURIComponent(user.userId)}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success) {
+        setApplications(prev => prev.filter(a => a.applicationId !== appId && a.id !== appId));
+        alert('已審批並創建用戶');
+      } else {
+        alert('審批失敗：' + (data.error || ''));
+      }
+    } catch (err: any) {
+      alert('連線失敗');
+    }
   };
 
-  return <div className="stack">
-    <section className="card row" style={{ justifyContent: 'space-between' }}>
-      <div><span className="badge blue">領袖控制台 · {roleLabel[user.role]}</span><h2>{user.name}</h2><p className="muted">支部：{branch?.name}。你可以改動相關支部資料，並查看其他旅 / 外部公開活動。</p></div>
-      <Link className="btn" href="/login">身份切換</Link>
-    </section>
+  if (loading) return <div className="stack" style={{ padding: 40 }}>載入中...</div>;
 
-    <section className="grid">
-      <div className="card"><span className="badge">本支部成員</span><h2>{members.length}</h2><p className="muted">{branch?.section}</p></div>
-      <div className="card"><span className="badge gold">可見未來活動</span><h2>{events.length}</h2><p className="muted">支部 + 全旅 + 外部活動</p></div>
-      <div className="card"><span className="badge red">待批核申請</span><h2>{canApproveBranchStaff ? applications.filter(a => a.requestedRole !== 'group_leader').length : 0}</h2><p className="muted">只有團長可批核本支部領袖 / 教練員</p></div>
-    </section>
+  return (
+    <div className="stack">
+      <section className="hero">
+        <span className="badge blue">領袖控制台</span>
+        <h1>{user?.role === 'group_leader' ? '團長' : user?.role === 'branch_leader' ? '支部領袖' : '教練員'}控制台</h1>
+        <p>管理所屬支部的活動、成員及申請。</p>
+      </section>
 
-    <section className="split">
-      <div className="card stack"><h3>本支部成員資料</h3><table className="table"><thead><tr><th>姓名</th><th>小隊</th><th>編號</th><th>級別</th><th>緊急電話</th></tr></thead><tbody>{members.map(m => <tr key={m.id}><td>{m.name}</td><td>{m.patrol || '-'}</td><td>{m.ymNumber}</td><td>{m.rank || '-'}</td><td>{m.emergencyPhone || '-'}</td></tr>)}</tbody></table></div>
-      <div className="card stack"><h3>支部領袖 / 教練員申請</h3>{canApproveBranchStaff ? applications.filter(a => a.requestedRole !== 'group_leader').map(a => <div key={a.id} className="card" style={{ boxShadow: 'none' }}><strong>{a.name}</strong><p className="muted">申請：{roleLabel[a.requestedRole]} · {a.email}</p><p>{a.experience}</p><button className="btn green" onClick={() => approveStaff(a.id)}>團長批核</button></div>) : <p className="muted">非團長身份只可查看，不能批核帳戶。</p>}</div>
-    </section>
+      {error && (
+        <section className="card" style={{ background: '#fff0f0', border: '1px solid #ffcccc' }}>
+          <p style={{ color: 'var(--red)' }}>⚠️ {error}</p>
+        </section>
+      )}
 
-    <section className="card stack"><h3>活動與報名統計</h3>{events.map(event => { const s = getReplySummary(event.id, data); return <div key={event.id} className="card" style={{ boxShadow: 'none' }}><div className="row" style={{ justifyContent: 'space-between' }}><strong>{event.title}</strong><span className="badge blue">{getBranchName(data, event.branchId)}</span></div><p className="muted">{event.date} · {event.location}</p>{event.branchId === user.branchId && <div className="kpi"><div className="box"><strong>{s.total}</strong>總數</div><div className="box"><strong>{s.yes}</strong>出席</div><div className="box"><strong>{s.no}</strong>不出席</div><div className="box"><strong>{s.pending}</strong>未覆</div></div>}</div>; })}</section>
-  </div>;
+      {stats && (
+        <section className="grid">
+          <div className="card"><span className="badge blue">成員</span><h2>{stats.totalMembers || 0}</h2><p className="muted">所屬支部成員</p></div>
+          <div className="card"><span className="badge green">活動</span><h2>{stats.totalEvents || 0}</h2><p className="muted">已發布活動</p></div>
+          <div className="card"><span className="badge red">待審批</span><h2>{stats.pendingApplications || 0}</h2><p className="muted">待處理申請</p></div>
+        </section>
+      )}
+
+      {canApprove && applications.length > 0 && (
+        <section className="card stack">
+          <h2>待審批申請</h2>
+          {applications.map(app => (
+            <div key={app.applicationId || app.id} className="card" style={{ boxShadow: 'none' }}>
+              <div className="row" style={{ justifyContent: 'space-between' }}>
+                <div>
+                  <h3>{app.name}</h3>
+                  <p className="muted">{app.email} · {app.role} · {app.branchId}</p>
+                </div>
+                <button className="btn primary" onClick={() => approve(app.applicationId || app.id)}>審批</button>
+              </div>
+              {app.experience && <p>{app.experience}</p>}
+            </div>
+          ))}
+        </section>
+      )}
+
+      <section className="grid">
+        <FeatureCard title="活動管理" icon="🗓️" text="管理所屬支部的活動。" href="/admin/events" />
+        <FeatureCard title="圖書館標記" icon="📚" text="標記本旅需要的通告。" href="/library" />
+        <FeatureCard title="成員資料" icon="👥" text="查看所屬支部成員。" href="/admin/members" />
+      </section>
+    </div>
+  );
+}
+
+export default function LeaderDashboard() {
+  return (
+    <AuthGate roles={leaderRoles as any} title="需要領袖權限">
+      <LeaderInner />
+    </AuthGate>
+  );
+}
+
+function FeatureCard({ title, text, icon, href }: { title: string; text: string; icon: string; href: string; }) {
+  return (
+    <Link href={href} className="card stack group">
+      <h3 className="flex items-center gap-2">
+        <span>{icon}</span>
+        <span>{title}</span>
+      </h3>
+      <p className="muted">{text}</p>
+      <div className="btn block text-center mt-auto group-hover:bg-blue-600 group-hover:text-white transition">進入</div>
+    </Link>
+  );
 }

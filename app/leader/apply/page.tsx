@@ -1,5 +1,142 @@
-import { redirect } from 'next/navigation';
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
+
+const ROLES = [
+  { value: 'group_leader', label: '團長' },
+  { value: 'branch_leader', label: '支部領袖' },
+  { value: 'coach', label: '教練員' },
+];
 
 export default function LeaderApplyPage() {
-  redirect('/apply?type=leader');
+  const router = useRouter();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [role, setRole] = useState('group_leader');
+  const [branchId, setBranchId] = useState('b1');
+  const [experience, setExperience] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (password !== confirmPassword) {
+      setError('兩次輸入的密碼不一致');
+      return;
+    }
+    if (password.length < 4) {
+      setError('密碼長度至少 4 位');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const url = APPS_SCRIPT_URL
+        + '?action=applyLeader'
+        + '&name=' + encodeURIComponent(name)
+        + '&email=' + encodeURIComponent(email)
+        + '&phone=' + encodeURIComponent(phone)
+        + '&role=' + encodeURIComponent(role)
+        + '&branchId=' + encodeURIComponent(branchId)
+        + '&experience=' + encodeURIComponent(experience)
+        + '&password=' + encodeURIComponent(password);
+
+      const res = await fetch(url, { cache: 'no-store' });
+      const data = await res.json();
+
+      if (data.success) {
+        setSuccess(true);
+      } else {
+        setError(data.error || '申請失敗');
+      }
+    } catch (err: any) {
+      setError(err.message || '連線失敗');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="stack" style={{ maxWidth: 480, margin: '60px auto' }}>
+        <section className="card" style={{ background: '#f0fff4', border: '1px solid #ccffcc' }}>
+          <span className="badge green">申請已提交</span>
+          <h2>領袖申請成功</h2>
+          <p className="muted">你的申請已提交，請等待管理員或團長審批。審批通過後即可用電郵和密碼登入。</p>
+          <button className="btn primary" onClick={() => router.push('/login')}>前往登入</button>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="stack" style={{ maxWidth: 480, margin: '60px auto' }}>
+      <section className="card">
+        <h1>領袖申請</h1>
+        <p className="muted">申請團長、支部領袖或教練員權限。需等待審批。</p>
+        <form onSubmit={handleSubmit} className="stack">
+          <div>
+            <label className="block text-sm font-medium mb-1">姓名</label>
+            <input className="w-full border rounded-lg px-3 py-2" value={name} onChange={e => setName(e.target.value)} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">電子郵件（登入用）</label>
+            <input type="email" className="w-full border rounded-lg px-3 py-2" value={email} onChange={e => setEmail(e.target.value)} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">電話</label>
+            <input className="w-full border rounded-lg px-3 py-2" value={phone} onChange={e => setPhone(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">申請角色</label>
+            <select className="select w-full" value={role} onChange={e => setRole(e.target.value)}>
+              {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">所屬支部</label>
+            <select className="select w-full" value={branchId} onChange={e => setBranchId(e.target.value)}>
+              <option value="b1">小童軍支部</option>
+              <option value="b2">幼童軍支部</option>
+              <option value="b3">童軍支部</option>
+              <option value="b4">深資童軍支部</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">相關經驗</label>
+            <textarea className="w-full border rounded-lg px-3 py-2" rows={3} value={experience} onChange={e => setExperience(e.target.value)} placeholder="簡述你的童軍經驗..." />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">密碼</label>
+            <input type="password" className="w-full border rounded-lg px-3 py-2" value={password} onChange={e => setPassword(e.target.value)} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">確認密碼</label>
+            <input type="password" className="w-full border rounded-lg px-3 py-2" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+          </div>
+          {error && (
+            <div className="card" style={{ background: '#fff0f0', border: '1px solid #ffcccc' }}>
+              <p style={{ color: 'var(--red)' }}>{error}</p>
+            </div>
+          )}
+          <button type="submit" className="btn primary" disabled={loading}>
+            {loading ? '提交中...' : '提交領袖申請'}
+          </button>
+        </form>
+        <div className="row" style={{ marginTop: 16 }}>
+          <a href="/login" className="btn">已有帳戶？登入</a>
+        </div>
+      </section>
+    </div>
+  );
 }

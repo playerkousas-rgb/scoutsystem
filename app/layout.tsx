@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 
 function NavBar() {
-  const [user, setUser] = useState<{ name: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; role: string; dashboard: string } | null>(null);
 
   useEffect(() => {
     try {
@@ -26,7 +26,11 @@ function NavBar() {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed?.name) {
-          setUser({ name: parsed.name, role: parsed.role });
+          setUser({
+            name: parsed.name,
+            role: parsed.role,
+            dashboard: parsed.dashboard || '/',
+          });
           return;
         }
       }
@@ -40,7 +44,12 @@ function NavBar() {
           const data = JSON.parse(rawData);
           const found = data?.users?.find((u: any) => u.id === sessionId);
           if (found) {
-            setUser({ name: found.name, role: found.role });
+            let dashboard = '/';
+            if (found.role === 'super_admin' || found.role === 'admin') dashboard = '/admin';
+            else if (['group_leader', 'branch_leader', 'coach'].includes(found.role)) dashboard = '/leader';
+            else if (found.role === 'parent') dashboard = '/parent';
+            else if (found.role === 'member') dashboard = '/member';
+            setUser({ name: found.name, role: found.role, dashboard });
           }
         }
       }
@@ -55,20 +64,6 @@ function NavBar() {
     window.location.href = '/';
   };
 
-  const getDashboardHref = () => {
-    if (!user) return '/login';
-    switch (user.role) {
-      case 'super_admin': return '/admin';
-      case 'admin': return '/admin';
-      case 'group_leader': return '/leader';
-      case 'branch_leader': return '/leader';
-      case 'coach': return '/leader';
-      case 'parent': return '/parent';
-      case 'member': return '/member';
-      default: return '/login';
-    }
-  };
-
   return (
     <header style={{ borderBottom: '1px solid var(--line)', background: 'white', position: 'sticky', top: 0, zIndex: 50 }}>
       <div className="row" style={{ maxWidth: 1100, margin: '0 auto', padding: '12px 20px', justifyContent: 'space-between', flexWrap: 'wrap' }}>
@@ -81,7 +76,7 @@ function NavBar() {
           <Link href="/library" className="btn" style={{ padding: '6px 12px', fontSize: 14 }}>圖書館</Link>
           {user ? (
             <div className="row" style={{ gap: 8 }}>
-              <Link href={getDashboardHref()} className="btn primary" style={{ padding: '6px 12px', fontSize: 14 }}>
+              <Link href={user.dashboard} className="btn primary" style={{ padding: '6px 12px', fontSize: 14 }}>
                 控制台
               </Link>
               <span className="badge blue" style={{ fontSize: 12, padding: '4px 8px' }}>{user.name}</span>

@@ -4,8 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
-const SESSION_KEY = 'scout-system-session-v2';
-const CURRENT_USER_KEY = 'currentUser';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -26,12 +24,10 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (data.success && data.user) {
-        // 統一寫入兩個 key，兼容 troupeStore 和舊版 login
-        localStorage.setItem(SESSION_KEY, data.user.userId);
-        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(data.user));
+        localStorage.setItem('currentUser', JSON.stringify(data.user));
+        localStorage.setItem('scout-system-session-v2', data.user.userId);
         localStorage.setItem('isLoggedIn', 'true');
-
-        router.push('/admin');
+        router.push(data.user.dashboard || '/');
       } else {
         setError(data.error || '登入失敗');
       }
@@ -46,7 +42,7 @@ export default function LoginPage() {
     <div className="stack" style={{ maxWidth: 480, margin: '60px auto' }}>
       <section className="card">
         <h1>登入系統</h1>
-        <p className="muted">目前僅開放超級管理員登入</p>
+        <p className="muted">所有角色均可登入。登入後將跳轉至對應控制台。</p>
         <form onSubmit={handleLogin} className="stack">
           <div>
             <label className="block text-sm font-medium mb-1">電子郵件</label>
@@ -77,6 +73,10 @@ export default function LoginPage() {
             {loading ? '登入中...' : '登入'}
           </button>
         </form>
+        <div className="row" style={{ justifyContent: 'space-between', marginTop: 16 }}>
+          <a href="/register" className="btn">家長註冊</a>
+          <a href="/leader/apply" className="btn">領袖申請</a>
+        </div>
       </section>
     </div>
   );
