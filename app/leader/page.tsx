@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import AuthGate from '@/components/AuthGate';
+import AnnouncementManager from '@/components/AnnouncementManager';
 import { branchName } from '@/lib/branches';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
@@ -96,6 +97,9 @@ function LeaderInner() {
           <FeatureCard title="家長審核 / 申請管理" icon="✅" text="審核家長註冊申請（含子女姓名及 YMIS）。" href="/admin/parents" />
         )}
       </section>
+
+      {/* 發送通告訊息 */}
+      <AnnouncementManager />
     </div>
   );
 }

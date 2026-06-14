@@ -4,6 +4,7 @@ import './globals.css';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import AnnouncementBanner from '@/components/AnnouncementBanner';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -20,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 function NavBar() {
   const [user, setUser] = useState<{ name: string; role: string; dashboard: string } | null>(null);
-  const pathname = usePathname(); // ★ 路由變化時重新讀取登入狀態
+  const pathname = usePathname();
 
   useEffect(() => {
     try {
@@ -37,8 +38,8 @@ function NavBar() {
         }
       }
     } catch {}
-    setUser(null); // ★ 沒找到用戶時清空
-  }, [pathname]); // ★ 依賴 pathname：每次路由變化都重新檢查
+    setUser(null);
+  }, [pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
@@ -71,6 +72,8 @@ function NavBar() {
           )}
         </div>
       </div>
+      {/* 通告橫幅 — 登入後顯示 */}
+      {user && <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 20px' }}><AnnouncementBanner /></div>}
     </header>
   );
 }
