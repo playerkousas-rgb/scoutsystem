@@ -8,12 +8,13 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-
 
 type ApplyType = 'parent' | 'leader' | 'member' | 'admin';
 
+// ★ 直接用中文名稱作為值存入 Sheet，不再用 b1-b5
 const BRANCHES = [
-  { id: 'b1', name: '小童軍支部' },
-  { id: 'b2', name: '幼童軍支部' },
-  { id: 'b3', name: '童軍支部' },
-  { id: 'b4', name: '深資童軍支部' },
-  { id: 'b5', name: '樂行童軍支部' },
+  { id: '小童軍', name: '小童軍支部' },
+  { id: '幼童軍', name: '幼童軍支部' },
+  { id: '童軍', name: '童軍支部' },
+  { id: '深資童軍', name: '深資童軍支部' },
+  { id: '樂行童軍', name: '樂行童軍支部' },
 ];
 
 const LEADER_ROLES = [
@@ -31,13 +32,15 @@ export default function ApplyPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [branchId, setBranchId] = useState('b1');
+  const [branchId, setBranchId] = useState('小童軍');
   const [role, setRole] = useState('group_leader');
   const [ymNumbers, setYmNumbers] = useState('');
   const [childNames, setChildNames] = useState('');
   const [notes, setNotes] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [gender, setGender] = useState('');
+  const [patrol, setPatrol] = useState('');
+  const [rank, setRank] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -76,6 +79,8 @@ export default function ApplyPage() {
           url += '&ymNumbers=' + encodeURIComponent(ymNumbers);
           url += '&dateOfBirth=' + encodeURIComponent(dateOfBirth);
           url += '&gender=' + encodeURIComponent(gender);
+          url += '&patrol=' + encodeURIComponent(patrol);
+          url += '&rank=' + encodeURIComponent(rank);
         }
       }
 
@@ -124,7 +129,7 @@ export default function ApplyPage() {
           <p className="muted">
             你的申請已提交，請等待管理員或團長審批。
             {isMember
-              ? '審批通過後即可用 YMIS 成員編號和密碼登入（登入頁請選「YMIS 登入」）。'
+              ? '審批通過後即可用 YMIS 成員編號和密碼登入（登入頁請選「成員登入」）。'
               : '審批通過後即可用電郵和密碼登入。'}
           </p>
           <button className="btn primary" onClick={() => router.push('/login')}>前往登入</button>
@@ -143,7 +148,6 @@ export default function ApplyPage() {
             : '家長、領袖、管理員均可在此申請。正式身份以總會 / YMIS 登記為準。'}
         </p>
 
-        {/* 私隱摘要 */}
         <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: 12, fontSize: 13, marginBottom: 8 }}>
           本系統不收集敏感資料，資料僅用作系統內部用途，並儲存於 Google 雲端硬碟內。提交時將再顯示完整聲明。
         </div>
@@ -159,7 +163,6 @@ export default function ApplyPage() {
             </select>
           </div>
 
-          {/* 成員提示 */}
           {isMember && (
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: 10, fontSize: 13 }}>
               成員使用 <strong>YMIS 成員編號</strong> 登入，不需要電郵。請向領袖確認你的 YMIS 編號。
@@ -171,7 +174,6 @@ export default function ApplyPage() {
             <input className="w-full border rounded-lg px-3 py-2" value={name} onChange={e => setName(e.target.value)} required />
           </div>
 
-          {/* 電郵：成員為選填 */}
           <div>
             <label className="block text-sm font-medium mb-1">
               電郵{isMember ? '（選填）' : ' *'}
@@ -191,18 +193,12 @@ export default function ApplyPage() {
             <input className="w-full border rounded-lg px-3 py-2" value={phone} onChange={e => setPhone(e.target.value)} />
           </div>
 
-          {/* 成員專用欄位：出生日期、性別 */}
+          {/* 成員專用欄位 */}
           {isMember && (
             <>
               <div>
                 <label className="block text-sm font-medium mb-1">出生日期 *</label>
-                <input
-                  type="date"
-                  className="w-full border rounded-lg px-3 py-2"
-                  value={dateOfBirth}
-                  onChange={e => setDateOfBirth(e.target.value)}
-                  required
-                />
+                <input type="date" className="w-full border rounded-lg px-3 py-2" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} required />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">性別 *</label>
@@ -211,6 +207,18 @@ export default function ApplyPage() {
                   <option value="男">男</option>
                   <option value="女">女</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">YMIS 成員編號（登入用）*</label>
+                <input className="w-full border rounded-lg px-3 py-2" value={ymNumbers} onChange={e => setYmNumbers(e.target.value)} placeholder="例如：YM001" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">小隊（選填）</label>
+                <input className="w-full border rounded-lg px-3 py-2" value={patrol} onChange={e => setPatrol(e.target.value)} placeholder="例如：猛虎小隊" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">職級（選填）</label>
+                <input className="w-full border rounded-lg px-3 py-2" value={rank} onChange={e => setRank(e.target.value)} placeholder="例如：小隊長" />
               </div>
             </>
           )}
@@ -224,7 +232,6 @@ export default function ApplyPage() {
             </div>
           )}
 
-          {/* 領袖/管理員才有角色選擇 */}
           {(type === 'leader' || type === 'admin') && (
             <div>
               <label className="block text-sm font-medium mb-1">希望使用身份</label>
@@ -234,21 +241,6 @@ export default function ApplyPage() {
             </div>
           )}
 
-          {/* 成員：YMIS 編號（登入用） */}
-          {isMember && (
-            <div>
-              <label className="block text-sm font-medium mb-1">YMIS 成員編號（登入用）*</label>
-              <input
-                className="w-full border rounded-lg px-3 py-2"
-                value={ymNumbers}
-                onChange={e => setYmNumbers(e.target.value)}
-                placeholder="例如：YM001"
-                required
-              />
-            </div>
-          )}
-
-          {/* 家長：子女 YMIS + 姓名 */}
           {type === 'parent' && (
             <>
               <div>

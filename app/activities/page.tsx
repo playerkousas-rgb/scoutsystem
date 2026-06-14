@@ -189,7 +189,7 @@ export default function ActivitiesPage() {
       <section className="hero">
         <span className="badge blue">公開活動</span>
         <h1>旅或支部未來活動</h1>
-        <p>集中展示旅、支部活動，以及本旅已標記的全港通告。標記 ⭐ 感興趣、❤️ 已報名，即使通告過期也不會消失。</p>
+        <p>集中展示旅、支部活動，以及本旅已標記的全港通告。標記 ⭐ 感興趣、❤️ 會參加，即使通告過期也不會消失。</p>
         <div className="row">
           {TABS.map(t => (
             <button key={t} className={`btn ${tab === t ? 'primary' : ''}`} onClick={() => setTab(t)}>{t}</button>
@@ -200,7 +200,7 @@ export default function ActivitiesPage() {
         <strong>篩選：</strong>
         <button className={`btn ${!showStarred && !showHearted ? 'primary' : ''}`} onClick={() => { setShowStarred(false); setShowHearted(false); }}>全部</button>
         <button className={`btn ${showStarred ? 'primary' : ''}`} onClick={() => { setShowStarred(true); setShowHearted(false); }}>⭐ 已標星</button>
-        <button className={`btn ${showHearted ? 'primary' : ''}`} onClick={() => { setShowStarred(false); setShowHearted(true); }}>❤️ 已報名</button>
+        <button className={`btn ${showHearted ? 'primary' : ''}`} onClick={() => { setShowStarred(false); setShowHearted(true); }}>❤️ 會參加</button>
         <div className="row" style={{ gap: 6, marginLeft: 12, flexWrap: 'wrap' }}>
           {BRANCHES.map(b => (
             <button key={b} className={`btn ${branch === b ? 'primary' : ''}`} onClick={() => setBranch(branch === b ? 'all' : b)}>
@@ -218,7 +218,7 @@ export default function ActivitiesPage() {
                   <button className="btn" style={{ fontSize: 18, padding: '0 4px' }} title="感興趣" onClick={() => toggleStar(e.id)}>
                     {stars.has(e.id) ? '⭐' : '☆'}
                   </button>
-                  <button className="btn" style={{ fontSize: 18, padding: '0 4px' }} title="已報名/已參加" onClick={() => toggleHeart(e.id)}>
+                  <button className="btn" style={{ fontSize: 18, padding: '0 4px' }} title="會參加" onClick={() => toggleHeart(e.id)}>
                     {hearts.has(e.id) ? '❤️' : '🤍'}
                   </button>
                   <div>

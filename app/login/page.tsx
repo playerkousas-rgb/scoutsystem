@@ -1,17 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 
 export default function LoginPage() {
+  // email = 家長/領袖/管理員；ymis = 成員
   const [mode, setMode] = useState<'email' | 'ymis'>('email');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +29,6 @@ export default function LoginPage() {
         localStorage.setItem('currentUser', JSON.stringify(data.user));
         localStorage.setItem('scout-system-session-v2', data.user.userId);
         localStorage.setItem('isLoggedIn', 'true');
-        // ★ 用 window.location.href 而非 router.push，確保整頁刷新、所有元件重新讀取登入狀態
         window.location.href = data.user.dashboard || '/';
       } else {
         setError(data.error || '登入失敗');
@@ -47,7 +45,6 @@ export default function LoginPage() {
       <section className="card">
         <h1>登入系統</h1>
 
-        {/* 登入方式切換 */}
         <div className="row" style={{ gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden', border: '1px solid #ddd' }}>
           <button
             type="button"
@@ -58,7 +55,7 @@ export default function LoginPage() {
               color: mode === 'email' ? '#fff' : '#666',
             }}
           >
-            📧 電郵登入
+            領袖及家長登入
           </button>
           <button
             type="button"
@@ -69,7 +66,7 @@ export default function LoginPage() {
               color: mode === 'ymis' ? '#fff' : '#666',
             }}
           >
-            🔢 YMIS 登入
+            成員登入
           </button>
         </div>
 
