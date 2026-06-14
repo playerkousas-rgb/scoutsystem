@@ -267,8 +267,8 @@ export default function ApplicationManagement() {
                 {/* 家長：顯示子女資訊；成員：顯示成員編號 */}
                 {val(reviewing, 'ymNumbers') && (
                   val(reviewing, 'applicantType', 'requestedRole') === 'member'
-                    ? <div>NUM <strong>成員編號（YMIS）：</strong>{val(reviewing, 'ymNumbers')}</div>
-                    : <div>BABY <strong>子女 YMIS / 成員編號：</strong>{val(reviewing, 'ymNumbers')}</div>
+                    ? <div>🔢 <strong>成員編號（YMIS）：</strong>{val(reviewing, 'ymNumbers')}</div>
+                    : <div>👶 <strong>子女 YMIS / 成員編號：</strong>{val(reviewing, 'ymNumbers')}</div>
                 )}
                 {val(reviewing, 'childNames') && (
                   <div>🧒 <strong>子女姓名：</strong>{val(reviewing, 'childNames')}</div>
