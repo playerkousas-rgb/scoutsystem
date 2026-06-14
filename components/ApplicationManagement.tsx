@@ -20,6 +20,7 @@ function getLocalUser() {
   return null;
 }
 
+/** 大小寫不敏感取值 */
 function val(row: any, ...keys: string[]) {
   for (const k of keys) {
     const lower = String(k).toLowerCase();
@@ -30,6 +31,23 @@ function val(row: any, ...keys: string[]) {
   return '';
 }
 
+/**
+ * 智慧狀態偵測。
+ * 正常情況讀 status 欄；若資料因欄位錯位而 status 不是有效值，
+ * 則檢查 approvedAt（錯位時 "pending" 可能跑到這裡），最後預設 pending。
+ */
+function detectStatus(row: any): string {
+  const raw = String(val(row, 'status') || '').trim().toLowerCase();
+  if (['pending', 'approved', 'rejected'].includes(raw)) return raw;
+
+  // 資料可能錯位：approvedAt 欄可能存著實際的 status
+  const alt = String(val(row, 'approvedAt') || '').trim().toLowerCase();
+  if (['pending', 'approved', 'rejected'].includes(alt)) return alt;
+
+  // 預設為 pending（未審批的申請）
+  return 'pending';
+}
+
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: '待審批', color: '#b45309', bg: '#fef3c7' },
   approved: { label: '已批核', color: '#15803d', bg: '#dcfce7' },
@@ -37,37 +55,45 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
 };
 
 export default function ApplicationManagement() {
-  const [apps, setApps] = useState<any[]>([]);
+  const [allApps, setAllApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState<StatusFilter>('pending');
+  const [filter, setFilter] = useState<StatusFilter>('all');
   const [busyId, setBusyId] = useState('');
   const [expanded, setExpanded] = useState<string>('');
   const user = getLocalUser();
 
+  // ★ 改用 getTableData（已驗證可從瀏覽器正常呼叫，不會有 CORS 問題）
   const load = useCallback(() => {
     setLoading(true);
     setError('');
-    const url = `${APPS_SCRIPT_URL}?action=getApplications&userId=${encodeURIComponent(user?.userId || '')}&status=${filter}`;
-    fetch(url, { cache: 'no-store' })
+    fetch(`${APPS_SCRIPT_URL}?action=getTableData&table=Applications`, { cache: 'no-store' })
       .then(r => r.json())
       .then(d => {
-        if (d.success) setApps(d.data || []);
+        if (d.success) setAllApps(d.data || []);
         else setError(d.error || '載入失敗');
       })
       .catch(err => setError(err.message || '連線失敗'))
       .finally(() => setLoading(false));
-  }, [filter, user]);
+  }, []);
 
   useEffect(() => {
     load();
   }, [load]);
 
+  // 前端計算每筆申請的狀態
+  const appsWithStatus = allApps.map(a => ({ ...a, _status: detectStatus(a) }));
+
   const counts = {
-    pending: apps.filter(a => (val(a, 'status') || 'pending') === 'pending').length,
-    approved: apps.filter(a => val(a, 'status') === 'approved').length,
-    rejected: apps.filter(a => val(a, 'status') === 'rejected').length,
+    pending: appsWithStatus.filter(a => a._status === 'pending').length,
+    approved: appsWithStatus.filter(a => a._status === 'approved').length,
+    rejected: appsWithStatus.filter(a => a._status === 'rejected').length,
   };
+
+  // 前端篩選
+  const filteredApps = filter === 'all'
+    ? appsWithStatus
+    : appsWithStatus.filter(a => a._status === filter);
 
   const approve = async (app: any) => {
     const id = val(app, 'applicationId', 'id');
@@ -116,7 +142,7 @@ export default function ApplicationManagement() {
     }
   };
 
-  const FILTER_TABS: { key: StatusFilter; label: string; n?: number }[] = [
+  const FILTER_TABS: { key: StatusFilter; label: string }[] = [
     { key: 'pending', label: '待審批' },
     { key: 'approved', label: '已批核' },
     { key: 'rejected', label: '已拒絕' },
@@ -147,7 +173,7 @@ export default function ApplicationManagement() {
       {/* 篩選 */}
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
         {FILTER_TABS.map(t => {
-          const n = t.key === 'all' ? apps.length : counts[t.key as keyof typeof counts];
+          const n = t.key === 'all' ? allApps.length : counts[t.key];
           const active = filter === t.key;
           return (
             <button
@@ -166,13 +192,13 @@ export default function ApplicationManagement() {
       {/* 列表 */}
       {loading ? (
         <div className="stack" style={{ padding: 40 }}>載入中...</div>
-      ) : apps.length === 0 ? (
+      ) : filteredApps.length === 0 ? (
         <section className="card"><p className="muted">此分類暫無申請</p></section>
       ) : (
         <div className="stack" style={{ gap: 12 }}>
-          {apps.map((app, i) => {
+          {filteredApps.map((app, i) => {
             const id = String(val(app, 'applicationId', 'id') || i);
-            const status = String(val(app, 'status') || 'pending');
+            const status = app._status;
             const meta = STATUS_META[status] || STATUS_META.pending;
             const isPending = status === 'pending';
             const isOpen = expanded === id;
@@ -192,7 +218,6 @@ export default function ApplicationManagement() {
                     <p className="muted" style={{ margin: '2px 0 0', fontSize: 13 }}>
                       類型：{val(app, 'applicantType', 'requestedRole', 'role') || '—'}
                       {val(app, 'branchId') && ` · 支部 ${val(app, 'branchId')}`}
-                      {val(app, 'createdAt') && ` · ${val(app, 'createdAt')}`}
                     </p>
                   </div>
                   {isPending && (
@@ -222,7 +247,7 @@ export default function ApplicationManagement() {
                 </button>
                 {isOpen && (
                   <div style={{ background: '#f9fafb', borderRadius: 8, padding: 12, fontSize: 13 }}>
-                    {Object.entries(app).map(([k, v]) => (
+                    {Object.entries(app).filter(([k]) => !k.startsWith('_')).map(([k, v]) => (
                       <div key={k} style={{ display: 'flex', gap: 8, padding: '2px 0', borderBottom: '1px solid #eee' }}>
                         <span style={{ fontWeight: 600, minWidth: 120, color: '#555' }}>{k}</span>
                         <span style={{ wordBreak: 'break-all' }}>{String(v ?? '')}</span>
