@@ -36,6 +36,8 @@ export default function ApplyPage() {
   const [ymNumbers, setYmNumbers] = useState('');
   const [childNames, setChildNames] = useState('');
   const [notes, setNotes] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gender, setGender] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -64,7 +66,7 @@ export default function ApplyPage() {
         url = APPS_SCRIPT_URL
           + '?action=applyLeader'
           + '&name=' + encodeURIComponent(name)
-          + '&email=' + encodeURIComponent(email)   // 成員的 email 可為空
+          + '&email=' + encodeURIComponent(email)
           + '&phone=' + encodeURIComponent(phone)
           + '&password=' + encodeURIComponent(password)
           + '&role=' + encodeURIComponent(effectiveRole)
@@ -72,6 +74,8 @@ export default function ApplyPage() {
           + '&experience=' + encodeURIComponent(notes);
         if (type === 'member') {
           url += '&ymNumbers=' + encodeURIComponent(ymNumbers);
+          url += '&dateOfBirth=' + encodeURIComponent(dateOfBirth);
+          url += '&gender=' + encodeURIComponent(gender);
         }
       }
 
@@ -141,7 +145,7 @@ export default function ApplyPage() {
 
         {/* 私隱摘要 */}
         <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: 12, fontSize: 13, marginBottom: 8 }}>
-          🔒 本系統不收集敏感資料，資料僅用作系統內部用途，並儲存於 Google 雲端硬碟內。提交時將再顯示完整聲明。
+          本系統不收集敏感資料，資料僅用作系統內部用途，並儲存於 Google 雲端硬碟內。提交時將再顯示完整聲明。
         </div>
 
         <form onSubmit={handleSubmit} className="stack">
@@ -158,7 +162,7 @@ export default function ApplyPage() {
           {/* 成員提示 */}
           {isMember && (
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: 10, fontSize: 13 }}>
-              ℹ️ 成員使用 <strong>YMIS 成員編號</strong> 登入，不需要電郵。請向領袖確認你的 YMIS 編號。
+              成員使用 <strong>YMIS 成員編號</strong> 登入，不需要電郵。請向領袖確認你的 YMIS 編號。
             </div>
           )}
 
@@ -187,6 +191,30 @@ export default function ApplyPage() {
             <input className="w-full border rounded-lg px-3 py-2" value={phone} onChange={e => setPhone(e.target.value)} />
           </div>
 
+          {/* 成員專用欄位：出生日期、性別 */}
+          {isMember && (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1">出生日期 *</label>
+                <input
+                  type="date"
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={dateOfBirth}
+                  onChange={e => setDateOfBirth(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">性別 *</label>
+                <select className="select w-full" value={gender} onChange={e => setGender(e.target.value)} required>
+                  <option value="">請選擇</option>
+                  <option value="男">男</option>
+                  <option value="女">女</option>
+                </select>
+              </div>
+            </>
+          )}
+
           {type !== 'admin' && (
             <div>
               <label className="block text-sm font-medium mb-1">所屬支部</label>
@@ -196,7 +224,7 @@ export default function ApplyPage() {
             </div>
           )}
 
-          {/* 領袖/管理員才有角色選擇（成員不需要） */}
+          {/* 領袖/管理員才有角色選擇 */}
           {(type === 'leader' || type === 'admin') && (
             <div>
               <label className="block text-sm font-medium mb-1">希望使用身份</label>

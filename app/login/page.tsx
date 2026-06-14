@@ -30,7 +30,8 @@ export default function LoginPage() {
         localStorage.setItem('currentUser', JSON.stringify(data.user));
         localStorage.setItem('scout-system-session-v2', data.user.userId);
         localStorage.setItem('isLoggedIn', 'true');
-        router.push(data.user.dashboard || '/');
+        // ★ 用 window.location.href 而非 router.push，確保整頁刷新、所有元件重新讀取登入狀態
+        window.location.href = data.user.dashboard || '/';
       } else {
         setError(data.error || '登入失敗');
       }

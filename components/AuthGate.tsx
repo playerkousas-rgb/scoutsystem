@@ -48,7 +48,26 @@ export default function AuthGate({
   const [user, setUser] = useState<User | null | undefined>(undefined);
 
   useEffect(() => {
-    setUser(getSessionUser() ?? null);
+    // ★ 直接讀 currentUser（login 頁寫入的），不依賴 troupeStore 的 mock data
+    try {
+      const raw = localStorage.getItem(CURRENT_USER_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.userId) {
+          setUser({
+            id: parsed.userId,
+            userId: parsed.userId,
+            name: parsed.name,
+            email: parsed.email,
+            role: parsed.role,
+            branchId: parsed.branchId,
+            approved: true,
+          } as User);
+          return;
+        }
+      }
+    } catch {}
+    setUser(null);
   }, []);
 
   if (user === undefined) return null;

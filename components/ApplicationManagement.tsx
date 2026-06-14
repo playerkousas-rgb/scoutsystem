@@ -71,12 +71,21 @@ export default function ApplicationManagement() {
     fetch(`${APPS_SCRIPT_URL}?action=getTableData&table=Applications`, { cache: 'no-store' })
       .then(r => r.json())
       .then(d => {
-        if (d.success) setAllApps(d.data || []);
-        else setError(d.error || '載入失敗');
+        if (d.success) {
+          let rows = d.data || [];
+          // ★ 非管理員只看自己支部
+          const role = String(user?.role || '').toLowerCase();
+          if (role !== 'super_admin' && role !== 'admin' && user?.branchId) {
+            rows = rows.filter((a: any) => val(a, 'branchId') === user.branchId);
+          }
+          setAllApps(rows);
+        } else {
+          setError(d.error || '載入失敗');
+        }
       })
       .catch(err => setError(err.message || '連線失敗'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     load();
@@ -211,7 +220,11 @@ export default function ApplicationManagement() {
                       {roleLabel(val(app, 'applicantType', 'requestedRole', 'role') || '申請者')}
                       {' · '}
                       {branchName(val(app, 'branchId'))}
-                      {val(app, 'ymNumbers') && ` · 子女 YM：${val(app, 'ymNumbers')}`}
+                      {val(app, 'ymNumbers') && (
+                        val(app, 'applicantType', 'requestedRole') === 'member'
+                          ? ` · 成員編號：${val(app, 'ymNumbers')}`
+                          : ` · 子女 YM：${val(app, 'ymNumbers')}`
+                      )}
                     </p>
                   </div>
                   {/* 只有一個按鈕 → 點擊後進入詳情 Modal，不會誤觸 */}
@@ -251,9 +264,11 @@ export default function ApplicationManagement() {
                 <div>📞 <strong>電話：</strong>{val(reviewing, 'phone') || '—'}</div>
                 <div>👤 <strong>申請身份：</strong>{roleLabel(val(reviewing, 'applicantType', 'requestedRole', 'role'))}</div>
                 <div>🏢 <strong>支部：</strong>{branchName(val(reviewing, 'branchId'))}</div>
-                {/* 家長申請：顯示子女資訊（讓團長/支部領袖能識別家長） */}
+                {/* 家長：顯示子女資訊；成員：顯示成員編號 */}
                 {val(reviewing, 'ymNumbers') && (
-                  <div>👶 <strong>子女 YMIS / 成員編號：</strong>{val(reviewing, 'ymNumbers')}</div>
+                  val(reviewing, 'applicantType', 'requestedRole') === 'member'
+                    ? <div>NUM <strong>成員編號（YMIS）：</strong>{val(reviewing, 'ymNumbers')}</div>
+                    : <div>BABY <strong>子女 YMIS / 成員編號：</strong>{val(reviewing, 'ymNumbers')}</div>
                 )}
                 {val(reviewing, 'childNames') && (
                   <div>🧒 <strong>子女姓名：</strong>{val(reviewing, 'childNames')}</div>

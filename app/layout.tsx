@@ -2,6 +2,7 @@
 
 import './globals.css';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 function NavBar() {
   const [user, setUser] = useState<{ name: string; role: string; dashboard: string } | null>(null);
+  const pathname = usePathname(); // ★ 路由變化時重新讀取登入狀態
 
   useEffect(() => {
     try {
@@ -35,26 +37,8 @@ function NavBar() {
         }
       }
     } catch {}
-
-    try {
-      const sessionId = localStorage.getItem('scout-system-session-v2');
-      if (sessionId) {
-        const rawData = localStorage.getItem('scout-system-ui-v2');
-        if (rawData) {
-          const data = JSON.parse(rawData);
-          const found = data?.users?.find((u: any) => u.id === sessionId);
-          if (found) {
-            let dashboard = '/';
-            if (found.role === 'super_admin' || found.role === 'admin') dashboard = '/admin';
-            else if (['group_leader', 'branch_leader', 'coach'].includes(found.role)) dashboard = '/leader';
-            else if (found.role === 'parent') dashboard = '/parent';
-            else if (found.role === 'member') dashboard = '/member';
-            setUser({ name: found.name, role: found.role, dashboard });
-          }
-        }
-      }
-    } catch {}
-  }, []);
+    setUser(null); // ★ 沒找到用戶時清空
+  }, [pathname]); // ★ 依賴 pathname：每次路由變化都重新檢查
 
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
