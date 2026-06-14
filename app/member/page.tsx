@@ -29,7 +29,6 @@ function val(row: any, ...keys: string[]) {
   return '';
 }
 
-// 從出生日期計算年齡
 function calcAge(dob: string): string {
   if (!dob) return '-';
   const d = new Date(dob);
@@ -41,10 +40,9 @@ function calcAge(dob: string): string {
   return String(age);
 }
 
-// 讀取「會參加」的活動 ID
-function getHeartedIds(): Set<string> {
+function getMarkedIds(key: string): Set<string> {
   try {
-    const raw = localStorage.getItem('scout-activity-hearts');
+    const raw = localStorage.getItem(key);
     if (raw) return new Set(JSON.parse(raw));
   } catch {}
   return new Set();
@@ -55,7 +53,8 @@ function MemberInner() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [hearts, setHearts] = useState<Set<string>>(() => getHeartedIds());
+  const hearts = getMarkedIds('scout-activity-hearts');
+  const coins = getMarkedIds('scout-activity-coins');
   const user = getUser();
 
   useEffect(() => {
@@ -85,9 +84,9 @@ function MemberInner() {
   const age = calcAge(val(member, 'dateOfBirth'));
   const ec = data?.emergencyContact || {};
 
-  // 會參加的活動（從 localStorage hearts 比對真實活動）
   const today = new Date().toISOString().slice(0, 10);
-  const heartedEvents = events.filter(e => hearts.has(e.id) && e.date >= today);
+  const interestedEvents = events.filter(e => hearts.has(e.id) && e.date >= today);
+  const registeredEvents = events.filter(e => coins.has(e.id) && e.date >= today);
 
   return (
     <div className="stack">
@@ -120,7 +119,7 @@ function MemberInner() {
         </div>
       </section>
 
-      {/* 緊急聯絡人（來自家長連結） */}
+      {/* 緊急聯絡人 */}
       <section className="card stack">
         <h2>緊急聯絡人</h2>
         {ec.name ? (
@@ -133,11 +132,23 @@ function MemberInner() {
         )}
       </section>
 
-      {/* 會參加的活動 */}
+      {/* 有興趣的活動 */}
       <section className="card stack">
-        <h2>會參加的活動</h2>
-        {!heartedEvents.length && <p className="muted">暫無。請到「活動」頁面按愛心標記會參加的活動。</p>}
-        {heartedEvents.map((e: any) => (
+        <h2>❤️ 有興趣的活動</h2>
+        {!interestedEvents.length && <p className="muted">暫無。請到「活動」頁面按 ❤️ 標記有興趣的活動。</p>}
+        {interestedEvents.map((e: any) => (
+          <div key={e.id} className="card" style={{ boxShadow: 'none' }}>
+            <h3>{e.title}</h3>
+            <p className="muted">{e.date} · {e.location}</p>
+          </div>
+        ))}
+      </section>
+
+      {/* 已報名的活動 */}
+      <section className="card stack">
+        <h2>💰 已報名的活動</h2>
+        {!registeredEvents.length && <p className="muted">暫無。已報名的活動會在這裡顯示。</p>}
+        {registeredEvents.map((e: any) => (
           <div key={e.id} className="card" style={{ boxShadow: 'none' }}>
             <h3>{e.title}</h3>
             <p className="muted">{e.date} · {e.location}</p>
@@ -160,7 +171,7 @@ function MemberInner() {
       <section className="grid">
         <a href="/activities" className="card stack group">
           <h3>活動與通告</h3>
-          <p className="muted">查看全旅活動，按愛心標記會參加。</p>
+          <p className="muted">查看全旅活動，按 ❤️ 有興趣、💰 已報名。</p>
           <div className="btn block text-center">進入</div>
         </a>
         <a href="/calendar" className="card stack group">

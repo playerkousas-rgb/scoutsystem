@@ -19,9 +19,9 @@ function getUser() {
   return null;
 }
 
-function getHeartedIds(): Set<string> {
+function getMarkedIds(key: string): Set<string> {
   try {
-    const raw = localStorage.getItem('scout-activity-hearts');
+    const raw = localStorage.getItem(key);
     if (raw) return new Set(JSON.parse(raw));
   } catch {}
   return new Set();
@@ -32,7 +32,8 @@ function ParentInner() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [hearts, setHearts] = useState<Set<string>>(() => getHeartedIds());
+  const hearts = getMarkedIds('scout-activity-hearts');
+  const coins = getMarkedIds('scout-activity-coins');
   const user = getUser();
 
   useEffect(() => {
@@ -59,7 +60,8 @@ function ParentInner() {
   if (loading) return <div className="stack" style={{ padding: 40 }}>載入中...</div>;
 
   const today = new Date().toISOString().slice(0, 10);
-  const heartedEvents = events.filter(e => hearts.has(e.id) && e.date >= today);
+  const interestedEvents = events.filter(e => hearts.has(e.id) && e.date >= today);
+  const registeredEvents = events.filter(e => coins.has(e.id) && e.date >= today);
 
   return (
     <div className="stack">
@@ -77,14 +79,27 @@ function ParentInner() {
 
       <section className="grid">
         <div className="card"><span className="badge blue">子女</span><h2>{data?.children?.length || 0}</h2><p className="muted">已關聯成員</p></div>
-        <div className="card"><span className="badge red">會參加</span><h2>{heartedEvents.length}</h2><p className="muted">已標記活動</p></div>
+        <div className="card"><span className="badge red">有興趣</span><h2>{interestedEvents.length}</h2><p className="muted">已標記活動</p></div>
+        <div className="card"><span className="badge green">已報名</span><h2>{registeredEvents.length}</h2><p className="muted">已報名活動</p></div>
       </section>
 
-      {/* 會參加的活動 */}
+      {/* 有興趣的活動 */}
       <section className="card stack">
-        <h2>會參加的活動</h2>
-        {!heartedEvents.length && <p className="muted">暫無。請到「活動」頁面按愛心標記會參加的活動。</p>}
-        {heartedEvents.map(e => (
+        <h2>❤️ 有興趣的活動</h2>
+        {!interestedEvents.length && <p className="muted">暫無。請到「活動」頁面按 ❤️ 標記有興趣的活動。</p>}
+        {interestedEvents.map(e => (
+          <div key={e.id} className="card" style={{ boxShadow: 'none' }}>
+            <h3>{e.title}</h3>
+            <p className="muted">{e.date} · {e.location}</p>
+          </div>
+        ))}
+      </section>
+
+      {/* 已報名的活動 */}
+      <section className="card stack">
+        <h2>💰 已報名的活動</h2>
+        {!registeredEvents.length && <p className="muted">暫無。家長可在活動頁按 💰 標記已報名。</p>}
+        {registeredEvents.map(e => (
           <div key={e.id} className="card" style={{ boxShadow: 'none' }}>
             <h3>{e.title}</h3>
             <p className="muted">{e.date} · {e.location}</p>
