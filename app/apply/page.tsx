@@ -41,6 +41,7 @@ export default function ApplyPage() {
   const [success, setSuccess] = useState(false);
 
   const pendingSubmit = useRef<(() => void) | null>(null);
+  const isMember = type === 'member';
 
   const doSubmit = async () => {
     setLoading(true);
@@ -59,13 +60,14 @@ export default function ApplyPage() {
           + '&childNames=' + encodeURIComponent(childNames)
           + '&notes=' + encodeURIComponent(notes);
       } else {
+        const effectiveRole = type === 'member' ? 'member' : role;
         url = APPS_SCRIPT_URL
           + '?action=applyLeader'
           + '&name=' + encodeURIComponent(name)
-          + '&email=' + encodeURIComponent(email)
+          + '&email=' + encodeURIComponent(email)   // 成員的 email 可為空
           + '&phone=' + encodeURIComponent(phone)
           + '&password=' + encodeURIComponent(password)
-          + '&role=' + encodeURIComponent(role)
+          + '&role=' + encodeURIComponent(effectiveRole)
           + '&branchId=' + encodeURIComponent(type === 'admin' ? '' : branchId)
           + '&experience=' + encodeURIComponent(notes);
         if (type === 'member') {
@@ -115,7 +117,12 @@ export default function ApplyPage() {
         <section className="card" style={{ background: '#f0fff4', border: '1px solid #ccffcc' }}>
           <span className="badge green">申請已提交</span>
           <h2>提交成功</h2>
-          <p className="muted">你的申請已提交，請等待管理員或團長審批。審批通過後即可用電郵和密碼登入。</p>
+          <p className="muted">
+            你的申請已提交，請等待管理員或團長審批。
+            {isMember
+              ? '審批通過後即可用 YMIS 成員編號和密碼登入（登入頁請選「YMIS 登入」）。'
+              : '審批通過後即可用電郵和密碼登入。'}
+          </p>
           <button className="btn primary" onClick={() => router.push('/login')}>前往登入</button>
         </section>
       </div>
@@ -125,8 +132,12 @@ export default function ApplyPage() {
   return (
     <div className="stack" style={{ maxWidth: 480, margin: '60px auto' }}>
       <section className="card">
-        <h1>申請加入系統</h1>
-        <p className="muted">統一申請頁面。家長、領袖、成員、管理員均可在此申請。正式身份以總會 / YMIS 登記為準。</p>
+        <h1>{isMember ? '成員註冊' : '申請加入系統'}</h1>
+        <p className="muted">
+          {isMember
+            ? '成員使用 YMIS 成員編號登入，電郵為選填。正式身份以總會 / YMIS 登記為準。'
+            : '家長、領袖、管理員均可在此申請。正式身份以總會 / YMIS 登記為準。'}
+        </p>
 
         {/* 私隱摘要 */}
         <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: 12, fontSize: 13, marginBottom: 8 }}>
@@ -139,19 +150,38 @@ export default function ApplyPage() {
             <select className="select w-full" value={type} onChange={e => setType(e.target.value as ApplyType)}>
               <option value="parent">家長帳戶</option>
               <option value="leader">領袖 / 教練員帳戶</option>
-              <option value="member">成員帳戶</option>
+              <option value="member">成員帳戶（YMIS 登入）</option>
               <option value="admin">管理員帳戶</option>
             </select>
           </div>
+
+          {/* 成員提示 */}
+          {isMember && (
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: 10, fontSize: 13 }}>
+              ℹ️ 成員使用 <strong>YMIS 成員編號</strong> 登入，不需要電郵。請向領袖確認你的 YMIS 編號。
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium mb-1">姓名 *</label>
             <input className="w-full border rounded-lg px-3 py-2" value={name} onChange={e => setName(e.target.value)} required />
           </div>
+
+          {/* 電郵：成員為選填 */}
           <div>
-            <label className="block text-sm font-medium mb-1">電郵 *</label>
-            <input type="email" className="w-full border rounded-lg px-3 py-2" value={email} onChange={e => setEmail(e.target.value)} required />
+            <label className="block text-sm font-medium mb-1">
+              電郵{isMember ? '（選填）' : ' *'}
+            </label>
+            <input
+              type="email"
+              className="w-full border rounded-lg px-3 py-2"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required={!isMember}
+              placeholder={isMember ? '可留空' : '登入用'}
+            />
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">電話</label>
             <input className="w-full border rounded-lg px-3 py-2" value={phone} onChange={e => setPhone(e.target.value)} />
@@ -166,6 +196,7 @@ export default function ApplyPage() {
             </div>
           )}
 
+          {/* 領袖/管理員才有角色選擇（成員不需要） */}
           {(type === 'leader' || type === 'admin') && (
             <div>
               <label className="block text-sm font-medium mb-1">希望使用身份</label>
@@ -175,20 +206,32 @@ export default function ApplyPage() {
             </div>
           )}
 
-          {(type === 'parent' || type === 'member') && (
+          {/* 成員：YMIS 編號（登入用） */}
+          {isMember && (
             <div>
-              <label className="block text-sm font-medium mb-1">
-                {type === 'parent' ? '子女 YMIS / 成員編號 *' : '自己的 YMIS / 成員編號 *'}
-              </label>
-              <textarea className="w-full border rounded-lg px-3 py-2" rows={2} value={ymNumbers} onChange={e => setYmNumbers(e.target.value)} placeholder="可多個，以空格、逗號或換行分隔" required />
+              <label className="block text-sm font-medium mb-1">YMIS 成員編號（登入用）*</label>
+              <input
+                className="w-full border rounded-lg px-3 py-2"
+                value={ymNumbers}
+                onChange={e => setYmNumbers(e.target.value)}
+                placeholder="例如：YM001"
+                required
+              />
             </div>
           )}
 
+          {/* 家長：子女 YMIS + 姓名 */}
           {type === 'parent' && (
-            <div>
-              <label className="block text-sm font-medium mb-1">子女姓名（可留空）</label>
-              <textarea className="w-full border rounded-lg px-3 py-2" rows={2} value={childNames} onChange={e => setChildNames(e.target.value)} />
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1">子女 YMIS / 成員編號 *</label>
+                <textarea className="w-full border rounded-lg px-3 py-2" rows={2} value={ymNumbers} onChange={e => setYmNumbers(e.target.value)} placeholder="可多個，以空格、逗號或換行分隔" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">子女姓名（可留空）</label>
+                <textarea className="w-full border rounded-lg px-3 py-2" rows={2} value={childNames} onChange={e => setChildNames(e.target.value)} />
+              </div>
+            </>
           )}
 
           <div>

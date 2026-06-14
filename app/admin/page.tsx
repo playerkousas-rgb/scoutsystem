@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import AuthGate from '@/components/AuthGate';
+import { branchName } from '@/lib/branches';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 
@@ -19,6 +20,26 @@ function getUser() {
   return null;
 }
 
+/** 大小寫不敏感取值 */
+function val(row: any, ...keys: string[]) {
+  for (const k of keys) {
+    const lower = String(k).toLowerCase();
+    for (const key in row) {
+      if (String(key).toLowerCase() === lower && row[key] !== '' && row[key] != null) return row[key];
+    }
+  }
+  return '';
+}
+
+function roleLabel(role: string): string {
+  const map: Record<string, string> = {
+    parent: '家長', leader: '領袖', member: '成員',
+    admin: '管理員', super_admin: '超級管理員',
+    group_leader: '團長', branch_leader: '支部領袖', coach: '教練員',
+  };
+  return map[String(role).toLowerCase()] || role;
+}
+
 function AdminInner() {
   const [stats, setStats] = useState<any>(null);
   const [applications, setApplications] = useState<any[]>([]);
@@ -32,13 +53,20 @@ function AdminInner() {
       try {
         const [dashRes, appRes] = await Promise.all([
           fetch(`${APPS_SCRIPT_URL}?action=getDashboardData&userId=${encodeURIComponent(user.userId)}`, { cache: 'no-store' }),
-          fetch(`${APPS_SCRIPT_URL}?action=getPendingApplications&userId=${encodeURIComponent(user.userId)}`, { cache: 'no-store' }),
+          fetch(`${APPS_SCRIPT_URL}?action=getTableData&table=Applications`, { cache: 'no-store' }),
         ]);
         const dashData = await dashRes.json();
         const appData = await appRes.json();
 
         if (dashData.success) setStats(dashData.data);
-        if (appData.success) setApplications(appData.data || []);
+        if (appData.success) {
+          // 只顯示 pending
+          setApplications((appData.data || []).filter((a: any) => {
+            const st = String(val(a, 'status') || '').trim().toLowerCase();
+            const alt = String(val(a, 'approvedAt') || '').trim().toLowerCase();
+            return st === 'pending' || alt === 'pending' || (!st && !alt);
+          }));
+        }
       } catch (err: any) {
         setError(err.message || '載入失敗');
       } finally {
@@ -47,22 +75,6 @@ function AdminInner() {
     }
     load();
   }, [user]);
-
-  const approve = async (appId: string) => {
-    if (!confirm('確定審批此申請？')) return;
-    try {
-      const res = await fetch(`${APPS_SCRIPT_URL}?action=approveApplication&applicationId=${encodeURIComponent(appId)}&approvedBy=${encodeURIComponent(user.userId)}`, { cache: 'no-store' });
-      const data = await res.json();
-      if (data.success) {
-        setApplications(prev => prev.filter(a => a.applicationId !== appId && a.id !== appId));
-        alert('已審批並創建用戶');
-      } else {
-        alert('審批失敗：' + (data.error || ''));
-      }
-    } catch (err: any) {
-      alert('連線失敗');
-    }
-  };
 
   if (loading) return <div className="stack" style={{ padding: 40 }}>載入中...</div>;
 
@@ -94,25 +106,27 @@ function AdminInner() {
         </section>
       )}
 
+      {/* 待審批快速預覽 — 純展示，按「前往審核頁面」到內頁操作（不會誤觸） */}
       {applications.length > 0 && (
         <section className="card stack">
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>待審批申請</h2>
-            <Link href="/admin/parents" className="btn" style={{ fontSize: 14 }}>查看全部 / 申請管理 →</Link>
+            <h2>待審批申請（{applications.length}）</h2>
+            <Link href="/admin/parents" className="btn primary" style={{ fontSize: 14 }}>前往審核頁面 →</Link>
           </div>
-          {applications.map(app => (
-            <div key={app.applicationId || app.id} className="card" style={{ boxShadow: 'none' }}>
-              <div className="row" style={{ justifyContent: 'space-between' }}>
+          {applications.slice(0, 5).map(app => {
+            const id = String(val(app, 'applicationId', 'id'));
+            return (
+              <div key={id} className="card" style={{ boxShadow: 'none', background: '#f9fafb' }}>
                 <div>
-                  <h3>{app.name}</h3>
-                  <p className="muted">{app.email} · {app.applicantType || app.role} · {app.branchId}</p>
+                  <h3 style={{ margin: 0 }}>{val(app, 'name')}</h3>
+                  <p className="muted" style={{ margin: '4px 0 0', fontSize: 14 }}>
+                    {val(app, 'email')} · {roleLabel(val(app, 'applicantType', 'requestedRole', 'role'))} · {branchName(val(app, 'branchId'))}
+                  </p>
+                  {val(app, 'ymNumbers') && <p className="muted" style={{ margin: '2px 0 0', fontSize: 13 }}>👶 子女 YM：{val(app, 'ymNumbers')}{val(app, 'childNames') && ` · ${val(app, 'childNames')}`}</p>}
                 </div>
-                <button className="btn primary" onClick={() => approve(app.applicationId || app.id)}>審批</button>
               </div>
-              {app.experience && <p>{app.experience}</p>}
-              {app.ymNumbers && <p className="muted">子女 YM：{app.ymNumbers}</p>}
-            </div>
-          ))}
+            );
+          })}
         </section>
       )}
 

@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [mode, setMode] = useState<'email' | 'ymis'>('email');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,7 +21,7 @@ export default function LoginPage() {
     try {
       const url = APPS_SCRIPT_URL
         + '?action=login'
-        + '&email=' + encodeURIComponent(email)
+        + '&email=' + encodeURIComponent(identifier)
         + '&password=' + encodeURIComponent(password);
       const res = await fetch(url);
       const data = await res.json();
@@ -44,26 +45,61 @@ export default function LoginPage() {
     <div className="stack" style={{ maxWidth: 480, margin: '60px auto' }}>
       <section className="card">
         <h1>登入系統</h1>
-        <p className="muted">所有角色均可登入。家長及成員如未設定密碼，可留空密碼欄直接以電郵登入。</p>
+
+        {/* 登入方式切換 */}
+        <div className="row" style={{ gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden', border: '1px solid #ddd' }}>
+          <button
+            type="button"
+            onClick={() => { setMode('email'); setIdentifier(''); }}
+            style={{
+              flex: 1, padding: '10px', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600,
+              background: mode === 'email' ? '#2563eb' : '#f5f5f5',
+              color: mode === 'email' ? '#fff' : '#666',
+            }}
+          >
+            📧 電郵登入
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode('ymis'); setIdentifier(''); }}
+            style={{
+              flex: 1, padding: '10px', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600,
+              background: mode === 'ymis' ? '#2563eb' : '#f5f5f5',
+              color: mode === 'ymis' ? '#fff' : '#666',
+            }}
+          >
+            🔢 YMIS 登入
+          </button>
+        </div>
+
+        <p className="muted" style={{ fontSize: 13, marginBottom: 12 }}>
+          {mode === 'email'
+            ? '家長、領袖、管理員請用已登記的電郵登入。'
+            : '成員請用 YMIS 成員編號登入（如不知編號請向領袖查詢）。'}
+        </p>
+
         <form onSubmit={handleLogin} className="stack">
           <div>
-            <label className="block text-sm font-medium mb-1">電郵 *</label>
+            <label className="block text-sm font-medium mb-1">
+              {mode === 'email' ? '電郵 *' : 'YMIS 成員編號 *'}
+            </label>
             <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              type={mode === 'email' ? 'email' : 'text'}
+              value={identifier}
+              onChange={e => setIdentifier(e.target.value)}
               className="w-full border rounded-lg px-3 py-2"
+              placeholder={mode === 'email' ? '例如：name@example.com' : '例如：YM001'}
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">密碼（管理員/領袖必填）</label>
+            <label className="block text-sm font-medium mb-1">密碼</label>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full border rounded-lg px-3 py-2"
-              placeholder="家長及成員可留空"
+              required
             />
           </div>
           {error && (
