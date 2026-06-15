@@ -10,10 +10,7 @@ export const api = {
   async callGS(action: string, payload: any = {}) {
     const url = this.getGsUrl();
     if (!url) return { success: false, error: "未選擇旅團" };
-    const response = await fetch(`${url}?action=${action}`, {
-      method: 'POST',
-      body: JSON.stringify({ ...payload, action }),
-    });
+    const response = await fetch(`${url}?action=${action}`, { method: 'POST', body: JSON.stringify({ ...payload, action }) });
     return response.json();
   },
   login: (id: string, pw: string) => api.callGS('login', { identifier: id, password: pw }),
@@ -25,4 +22,9 @@ export const api = {
   getMarketRegistry: () => fetch('https://troop-router.vercel.app/api/registry').then(res => res.json()),
   installPlugin: (plugin: any) => api.callGS('installTroopPlugin', { plugin }),
   getTroopCards: () => api.callGS('getTroopActiveCards'),
+  getApplications: (payload: any) => api.callGS('getApplications', payload),
+  getTableData: (table: string) => api.callGS('getTableData', { table }),
+  addRow: (table: string, data: any) => api.callGS('addRow', { table, data }),
+  updateRow: (table: string, id: string, data: any) => api.callGS('updateRow', { table, id, data }),
+  deleteRow: (table: string, id: string) => api.callGS('deleteRow', { table, id }),
 };

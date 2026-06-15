@@ -1,7 +1,2 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-body {
-  @apply bg-[#f8fafc] text-gray-900 antialiased;
-}
+@tailwind base; @tailwind components; @tailwind utilities;
+body { background-color: #f8fafc; color: #1a202c; font-family: ui-sans-serif, system-ui; }
