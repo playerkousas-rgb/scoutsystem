@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import AuthGate from '@/components/AuthGate';
 import AnnouncementManager from '@/components/AnnouncementManager';
+import SystemLockPanel from '@/components/SystemLockPanel';
 import { branchName } from '@/lib/branches';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
@@ -144,6 +145,8 @@ function AdminInner() {
         <FeatureCard title="使用者管理" icon="👤" text="查看及管理所有使用者帳號。" href="/admin/users" />
         <FeatureCard title="審核紀錄" icon="📜" text="查看所有申請與操作紀錄。" href="/admin/audit" />
       </section>
+      {/* 系統控制（僅超級管理員/後門帳號） */}
+      {user?.role === 'super_admin' && <SystemLockPanel />}
     </div>
   );
 }
