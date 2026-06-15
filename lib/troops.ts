@@ -3,5 +3,6 @@ export const TROOP_REGISTRY: Record<string, any> = {
     id: 'SKW_999',
     name: '筲箕灣第 999 旅',
     apiBase: 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec',
+    note: '首個接入及實際使用旅團。'
   }
 };

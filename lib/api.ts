@@ -3,7 +3,6 @@ import { TROOP_REGISTRY } from './troops';
 const ROUTER_URL = 'https://troop-router.vercel.app/api/registry';
 
 export const api = {
-  // 動態獲取當前旅團的 GS URL (從 localStorage 讀取)
   getGsUrl: () => {
     if (typeof window !== 'undefined') {
       const troopId = localStorage.getItem('current_troop_id') || 'SKW_999';
@@ -14,6 +13,7 @@ export const api = {
 
   async callGS(action: string, payload: any = {}) {
     const url = this.getGsUrl();
+    if (!url) return { success: false, error: "未選擇旅團" };
     const response = await fetch(`${url}?action=${action}`, {
       method: 'POST',
       body: JSON.stringify({ ...payload, action }),
@@ -21,11 +21,20 @@ export const api = {
     return response.json();
   },
 
+  login: (id: string, pw: string) => api.callGS('login', { identifier: id, password: pw }),
+  getTroopInfo: () => api.callGS('getTroopBasicInfo'),
+  getCalendar: (userId: string) => api.callGS('getPersonalizedCalendar', { userId }),
+  getDashboardData: (payload: any) => api.callGS('getDashboardData', payload),
+  setEventReply: (payload: any) => api.callGS('setEventReply', payload),
+  getEventReport: (eventId: string, branchId?: string) => api.callGS('getEventLeaderReport', { eventId, branchId }),
   getMarketRegistry: () => fetch(ROUTER_URL).then(res => res.json()),
   installPlugin: (plugin: any) => api.callGS('installTroopPlugin', { plugin }),
   getLocalCards: () => api.callGS('getTroopActiveCards'),
-  login: (id: string, pw: string) => api.callGS('login', { identifier: id, password: pw }),
-  getDashboardData: (payload: any) => api.callGS('getDashboardData', payload),
-  getCalendar: (userId: string) => api.callGS('getPersonalizedCalendar', { userId }),
-  setEventReply: (payload: any) => api.callGS('setEventReply', payload),
+  getApplications: (payload: any) => api.callGS('getApplications', payload),
+  approveApplication: (payload: any) => api.callGS('approveApplication', payload),
+  rejectApplication: (payload: any) => api.callGS('rejectApplication', payload),
+  getTableData: (table: string) => api.callGS('getTableData', { table }),
+  addRow: (table: string, data: any) => api.callGS('addRow', { table, data }),
+  updateRow: (table: string, id: string, data: any) => api.callGS('updateRow', { table, id, data }),
+  deleteRow: (table: string, id: string) => api.callGS('deleteRow', { table, id }),
 };
