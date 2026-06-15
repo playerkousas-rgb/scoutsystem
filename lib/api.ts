@@ -1,7 +1,8 @@
 /**
- * 旅團系統 Portal API 對接
+ * ScoutSystem - 核心 API 轉駁器 (V11.5)
  */
 
+// 請確保這裡的 GS_URL 是你部署後的網址
 const GS_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 const ROUTER_URL = 'https://troop-router.vercel.app/api/registry';
 
@@ -14,21 +15,26 @@ export async function callGS(action: string, payload: any = {}) {
 }
 
 export const api = {
-  // 獲取轉駁器市集清單
+  // --- 登入與基礎 ---
+  login: (id: string, pw: string) => callGS('login', { identifier: id, password: pw }),
+  getTroopInfo: () => callGS('getTroopBasicInfo'),
+  
+  // --- 活動與報名 (修正：補回缺失的函數) ---
+  getCalendar: (userId: string) => callGS('getPersonalizedCalendar', { userId }),
+  getDashboardData: (payload: any) => callGS('getDashboardData', payload),
+  setEventReply: (payload: any) => callGS('setEventReply', payload),
+  
+  // --- 轉駁器市集功能 ---
   getMarketRegistry: async () => {
     const res = await fetch(ROUTER_URL);
     return res.json();
   },
-
-  // 安裝插件到本地 GS
   installPlugin: (plugin: any) => callGS('installTroopPlugin', { plugin }),
-
-  // 獲取本地已安裝卡片
   getLocalCards: () => callGS('getTroopActiveCards'),
 
-  // 獲取旅團基本資訊 (如旅團名稱)
-  getTroopInfo: () => callGS('getTroopBasicInfo'),
-  
-  // 原有功能...
-  login: (id: string, pw: string) => callGS('login', { identifier: id, password: pw }),
+  // --- 通用 CRUD (供 AdminTableView 使用) ---
+  getTableData: (table: string) => callGS('getTableData', { table }),
+  addRow: (table: string, data: any) => callGS('addRow', { table, data }),
+  updateRow: (table: string, id: string, data: any) => callGS('updateRow', { table, id, data }),
+  deleteRow: (table: string, id: string) => callGS('deleteRow', { table, id }),
 };
