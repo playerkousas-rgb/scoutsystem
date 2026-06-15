@@ -1,4 +1,6 @@
 import { TROOP_REGISTRY } from './troops';
+const ROUTER_URL = 'https://troop-router.vercel.app/api/registry';
+
 export const api = {
   getGsUrl: () => {
     if (typeof window !== 'undefined') {
@@ -9,8 +11,11 @@ export const api = {
   },
   async callGS(action: string, payload: any = {}) {
     const url = this.getGsUrl();
-    if (!url) return { success: false, error: "未選旅團" };
-    const response = await fetch(`${url}?action=${action}`, { method: 'POST', body: JSON.stringify({ ...payload, action }) });
+    if (!url) return { success: false, error: "未選擇旅團" };
+    const response = await fetch(`${url}?action=${action}`, {
+      method: 'POST',
+      body: JSON.stringify({ ...payload, action }),
+    });
     return response.json();
   },
   login: (id: string, pw: string) => api.callGS('login', { identifier: id, password: pw }),
@@ -22,7 +27,7 @@ export const api = {
   setEventReply: (payload: any) => api.callGS('setEventReply', payload),
   getEventLeaderReport: (eventId: string, branchId?: string) => api.callGS('getEventLeaderReport', { eventId, branchId }),
   getEventReport: (eventId: string, branchId?: string) => api.callGS('getEventLeaderReport', { eventId, branchId }),
-  getMarketRegistry: () => fetch('https://troop-router.vercel.app/api/registry').then(res => res.json()),
+  getMarketRegistry: () => fetch(ROUTER_URL).then(res => res.json()),
   installTroopPlugin: (plugin: any) => api.callGS('installTroopPlugin', { plugin }),
   installPlugin: (p: any) => api.callGS('installTroopPlugin', { plugin: p }),
   getTroopActiveCards: () => api.callGS('getTroopActiveCards'),
