@@ -9,6 +9,7 @@ export const api = {
   },
   async callGS(action: string, payload: any = {}) {
     const url = this.getGsUrl();
+    if (!url) return { success: false, error: "未選擇旅團" };
     const response = await fetch(`${url}?action=${action}`, {
       method: 'POST',
       body: JSON.stringify({ ...payload, action }),
