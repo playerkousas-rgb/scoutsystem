@@ -1,7 +1,7 @@
 export const TROOP_REGISTRY: Record<string, any> = {
-  'SKW_999': {
-    id: 'SKW_999',
-    name: '筲箕灣第 999 旅',
+  '82ndHKG': {
+    id: 'SKW_082',
+    name: '港島第82旅',
     apiBase: 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec',
   }
 };
