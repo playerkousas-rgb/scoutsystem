@@ -3,45 +3,28 @@ import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import CardItem from '@/components/CardItem';
 
-export default function DashboardPage() {
-  const [user, setUser] = useState<any>(null);
-  const [cards, setCards] = useState<any[]>([]);
+export default function Dashboard() {
+  const [cards, setCards] = useState([]);
   const [troopInfo, setTroopInfo] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const init = async () => {
-      const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
-      const troopId = localStorage.getItem('current_troop_id');
-      if (!storedUser || !troopId) {
-        window.location.href = '/';
-        return;
-      }
-      setUser(storedUser);
-      const [tRes, cRes] = await Promise.all([
-        api.getTroopInfo(),
-        api.getTroopCards()
-      ]);
-      if (tRes.success) setTroopInfo(tRes);
-      if (cRes.success) setCards(cRes.data);
-      setLoading(false);
-    };
-    init();
+    api.getTroopInfo().then(res => setTroopInfo(res));
+    api.getTroopActiveCards().then(res => res.success && setCards(res.data));
   }, []);
 
-  if (loading) return <div className="p-10 text-center text-gray-400">正在進入控制台...</div>;
-
   return (
-    <div className="p-10 max-w-7xl mx-auto">
-      <header className="mb-10">
-        <h1 className="text-3xl font-black text-[#001f3f]">{troopInfo?.troopName}</h1>
-        <p className="text-sm text-gray-400 mt-1 font-medium">旅團代碼: {troopInfo?.troopId}</p>
-      </header>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-        {cards.map((card: any) => (
-          <CardItem key={card.id} card={card} troopId={troopInfo?.troopId} />
-        ))}
-        <CardItem card={{ id: 'market', title: '外掛市集', icon: '🏪', tier: 1, path: '/market', description: '探索與安裝新功能' }} troopId={troopInfo?.troopId} />
+    <div className="p-12 max-w-7xl mx-auto">
+      <div className="mb-12 bg-gradient-to-r from-blue-50 to-white p-10 rounded-[3rem] border border-blue-100 shadow-sm">
+        <h1 className="text-4xl font-black text-[#001f3f] mb-2">{troopInfo?.troopName || '載入中...'}</h1>
+        <p className="text-blue-600 font-medium tracking-wide">目前地區：{troopInfo?.troopId} | 已連通</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        {cards.length > 0 ? cards.map((c: any) => (
+          <CardItem key={c.id} card={c} troopId={troopInfo?.troopId} />
+        )) : (
+          <CardItem card={{id:'market', title:'前往市集安裝功能', icon:'➕', path:'/market', tier:1}} troopId={troopInfo?.troopId} />
+        )}
       </div>
     </div>
   );
