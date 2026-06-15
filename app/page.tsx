@@ -1,50 +1,41 @@
-import Link from 'next/link';
+'use client';
+import React from 'react';
+import { TROOP_REGISTRY } from '@/lib/troops';
 
-export default function HomePage() {
+export default function Home() {
+  const troops = Object.values(TROOP_REGISTRY);
+
   return (
-    <div className="stack">
-      {/* Hero 區 */}
-      <section className="hero">
-        <span className="badge gold">Step 1 · 身份及控制台 UI</span>
-        
-        <h1>ScoutSystem 旅團管理與協作系統</h1>
-        
-        <p>
-          這一版先建立各身份入口及控制台：超級管理員、管理員、團長、支部領袖、教練員、家長、成員。
-          後台暫用 localStorage 模擬，下一步會逐 Part 接入 Google Sheet 與 Apps Script。
-        </p>
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
+      <div className="max-w-2xl w-full bg-white rounded-[2rem] shadow-2xl p-12 border border-gray-100">
+        <header className="mb-10">
+          <h1 className="text-3xl font-black text-gray-800 mb-2">這個功能需要先選擇旅團</h1>
+          <p className="text-gray-400">由於每個旅團都有自己獨立的 Google Sheet / Apps Script 後台，請先選擇你所屬旅團，再繼續使用功能。</p>
+        </header>
 
-        <div className="row">
-          <Link className="btn primary" href="/login">🚀 登入系統</Link>
-          <Link className="btn gold" href="/apply">申請加入</Link>
+        <div className="space-y-4">
+          {troops.map((t: any) => (
+            <button 
+              key={t.id} 
+              onClick={() => {
+                localStorage.setItem('current_troop_id', t.id);
+                window.location.href = '/dashboard';
+              }}
+              className="w-full flex items-center justify-between p-6 border border-gray-100 rounded-3xl hover:border-blue-400 hover:bg-blue-50 transition-all group text-left"
+            >
+              <div>
+                <h3 className="text-xl font-bold text-blue-900 group-hover:text-blue-600">{t.name}</h3>
+                <p className="text-xs text-gray-400 mt-1">代碼: {t.id} | {t.note}</p>
+              </div>
+              <span className="bg-green-50 text-green-600 px-4 py-1 rounded-full text-xs font-black">已開通</span>
+            </button>
+          ))}
         </div>
-      </section>
 
-      {/* 公開功能卡片區 */}
-      <section className="grid">
-        <Feature 
-          title="公開行事曆" 
-          icon="📆" 
-          text="只作公開查看用途，標記哪一天有活動，不處理報名及行政流程。" 
-          href="/calendar" 
-        />
-        <Feature 
-          title="活動與通告" 
-          icon="📋" 
-          text="展示全旅未來活動，以及領袖已標記的圖書館通告。" 
-          href="/activities" 
-        />
-      </section>
-    </div>
-  );
-}
-
-function Feature({ title, text, icon, href }: { title: string; text: string; icon: string; href: string }) {
-  return (
-    <div className="card stack">
-      <h3>{icon} {title}</h3>
-      <p className="muted">{text}</p>
-      <Link className="btn block" href={href}>查看</Link>
+        <footer className="mt-12 pt-8 border-t border-gray-50 text-center text-[10px] text-gray-300 tracking-widest uppercase">
+          © 2026 ScoutSystem Portal powered by YOUR_NAME
+        </footer>
+      </div>
     </div>
   );
 }
