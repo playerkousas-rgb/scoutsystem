@@ -1,40 +1,30 @@
-// ScoutSystem API Client - Direct fetch to Google Apps Script
+const GS_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
+export async function callGS(action: string, payload: any = {}) {
+  const response = await fetch(`${GS_URL}?action=${action}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return response.json();
+}
 
-export type APIResponse<T> = {
-  success: boolean;
-  data?: T;
-  error?: string;
-  count?: number;
-  timestamp?: string;
+export const api = {
+  // 登入與基礎
+  login: (identifier: string, password: string) => callGS('login', { identifier, password }),
+  getBootstrap: () => callGS('getPublicBootstrapData'),
+  
+  // 活動與報名
+  getCalendar: (userId: string) => callGS('getPersonalizedCalendar', { userId }),
+  setEventReply: (data: { eventId: string, targetId: string, userId: string, type: string, paid?: boolean }) => 
+    callGS('setEventReply', data),
+  
+  // 領袖報表
+  getEventReport: (eventId: string, branchId?: string) => 
+    callGS('getEventLeaderReport', { eventId, branchId }),
+
+  // 圖書館
+  getLibrary: () => callGS('getPublicLibraryBookmarks'),
+  
+  // 通用 CRUD
+  getTable: (table: string) => callGS('getTableData', { table }),
 };
-
-// ---------- 公開讀取 API ----------
-
-export function fetchPublicBootstrap() {
-  return fetch(`${APPS_SCRIPT_URL}?action=getPublicBootstrapData`, { cache: 'no-store' })
-    .then(r => r.json())
-    .catch(err => ({ success: false, error: err.message } as APIResponse<any>));
-}
-
-export function fetchPublicCalendarItems() {
-  return fetch(`${APPS_SCRIPT_URL}?action=getPublicCalendarItems`, { cache: 'no-store' })
-    .then(r => r.json())
-    .catch(err => ({ success: false, error: err.message } as APIResponse<any>));
-}
-
-export function fetchPublicLibraryBookmarks() {
-  return fetch(`${APPS_SCRIPT_URL}?action=getPublicLibraryBookmarks`, { cache: 'no-store' })
-    .then(r => r.json())
-    .catch(err => ({ success: false, error: err.message } as APIResponse<any>));
-}
-
-// ---------- 登入 API ----------
-
-export function login(email: string, password: string) {
-  const url = `${APPS_SCRIPT_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
-  return fetch(url, { method: 'GET', cache: 'no-store' })
-    .then(r => r.json())
-    .catch(err => ({ success: false, error: err.message }));
-}
