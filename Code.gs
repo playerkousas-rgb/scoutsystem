@@ -1446,6 +1446,8 @@ function handleRequest_(e) {
 
     let result;
     switch (action) {
+      case 'installTroopPlugin': result = installTroopPlugin(payload); break;
+      case 'getTroopBasicInfo': result = getTroopBasicInfo(); break;
       case 'ping':
         result = { success: true, message: 'pong', time: new Date().toISOString(), action: action };
         break;
@@ -1544,4 +1546,20 @@ function handleRequest_(e) {
       stack: fatalErr.stack ? String(fatalErr.stack).split('\n').slice(0, 5).join(' | ') : ''
     });
   }
+}
+
+// --- 旅團系統轉駁器擴充功能 ---
+function installTroopPlugin(payload) {
+  const sheet = getSheet_('Cards');
+  const p = payload.plugin;
+  writeRowByHeaders_(sheet, {
+    id: p.id, title: p.title, icon: p.icon, tier: p.tier, path: p.path, roles: JSON.stringify(p.roles)
+  });
+  return { success: true };
+}
+
+function getTroopBasicInfo() {
+  const config = readTable_('SystemConfig');
+  const name = config.find(c => c.key === 'troop_name')?.value || '未定義旅團';
+  return { success: true, troopName: name };
 }
