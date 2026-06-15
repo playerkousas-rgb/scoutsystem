@@ -25,11 +25,4 @@ export const api = {
   getMarketRegistry: () => fetch('https://troop-router.vercel.app/api/registry').then(res => res.json()),
   installPlugin: (plugin: any) => api.callGS('installTroopPlugin', { plugin }),
   getTroopCards: () => api.callGS('getTroopActiveCards'),
-  getApplications: (payload: any) => api.callGS('getApplications', payload),
-  approveApplication: (payload: any) => api.callGS('approveApplication', payload),
-  rejectApplication: (payload: any) => api.callGS('rejectApplication', payload),
-  getTableData: (table: string) => api.callGS('getTableData', { table }),
-  addRow: (table: string, data: any) => api.callGS('addRow', { table, data }),
-  updateRow: (table: string, id: string, data: any) => api.callGS('updateRow', { table, id, data }),
-  deleteRow: (table: string, id: string) => api.callGS('deleteRow', { table, id }),
 };
