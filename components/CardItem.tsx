@@ -1,18 +1,34 @@
 'use client';
+import React from 'react';
 import Link from 'next/link';
 
-export default function CardItem({ card, troopId }: { card: any, troopId: string }) {
+interface CardProps {
+  card: any;
+  troopId: string; // 這是該旅團在 GS 裡定義的 ID
+}
+
+export default function CardItem({ card, troopId }: CardProps) {
+  // 核心轉駁邏輯：如果是獨立系統 (Tier 3)，跳轉時帶上 ?t=旅團代碼
   let finalUrl = card.url || card.path;
+  
   if (card.tier === 3 || card.type === 'jump') {
     const separator = finalUrl.includes('?') ? '&' : '?';
     finalUrl = `${finalUrl}${separator}t=${troopId}`;
   }
+
   const isExternal = finalUrl.startsWith('http');
+
   return (
-    <Link href={finalUrl} target={isExternal ? "_blank" : "_self"} className="bg-white p-6 rounded-[2rem] border border-gray-100 hover:shadow-2xl transition-all flex flex-col items-center text-center group">
-      <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">{card.icon || '🧩'}</div>
-      <h3 className="font-bold text-gray-800 text-lg">{card.title}</h3>
-      <div className="mt-3 px-3 py-1 bg-gray-50 text-[9px] text-gray-400 rounded-full font-bold uppercase">Tier {card.tier}</div>
+    <Link 
+      href={finalUrl} 
+      target={isExternal ? "_blank" : "_self"}
+      className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex flex-col items-center text-center group"
+    >
+      <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">
+        {card.icon || '🧩'}
+      </div>
+      <h3 className="font-bold text-gray-800">{card.title}</h3>
+      <p className="text-xs text-gray-400 mt-1">{card.description || ''}</p>
     </Link>
   );
 }
