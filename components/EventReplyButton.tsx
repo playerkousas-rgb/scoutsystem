@@ -1,86 +1,91 @@
 'use client';
-import React, { useState } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import EventReplyButton from '@/components/EventReplyButton';
 
-interface Props {
-  event: any;
-  user: any; // 登入用戶資訊
-  childrenData?: any[]; // 僅家長角色有此資料
-  onSuccess?: () => void;
-}
+export default function ActivitiesPage() {
+  const [user, setUser] = useState<any>(null);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState<any>(null);
 
-export default function EventReplyButton({ event, user, childrenData, onSuccess }: Props) {
-  const [showModal, setShowModal] = useState(false);
-  const isParent = user.role === 'parent';
-  const isAdultMember = user.role === 'member' && user.age >= 18;
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!storedUser) {
+          setLoading(false);
+          return;
+        }
+        setUser(storedUser);
 
-  const handleReply = async (targetId: string, type: 'interested' | 'registered') => {
-    const res = await api.setEventReply({
-      eventId: event.eventId || event.id,
-      targetId: targetId,
-      userId: user.userId,
-      userName: user.name,
-      type: type
-    });
-    if (res.success) {
-      alert('操作成功！');
-      setShowModal(false);
-      if (onSuccess) onSuccess();
+        // 獲取活動資料
+        const res = await api.getCalendar(storedUser.userId);
+        if (res.success) {
+          setEvents(res.data);
+        }
+
+        // 如果是家長，獲取子女資訊供報名按鈕使用
+        if (storedUser.role === 'parent') {
+          const dRes = await api.getDashboardData({ userId: storedUser.userId });
+          if (dRes.success) {
+            setDashboardData(dRes.data);
+          }
+        }
+      } catch (err) {
+        console.error('初始化失敗', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
+  }, []);
+
+  const refreshEvents = () => {
+    if (user?.userId) {
+      api.getCalendar(user.userId).then(res => {
+        if (res.success) setEvents(res.data);
+      });
     }
   };
 
+  if (loading) return <div className="p-8 text-center text-gray-500">載入中...</div>;
+
   return (
-    <div className="flex gap-2">
-      {/* 感興趣按鈕 (❤️) - 所有人可用 */}
-      <button 
-        onClick={() => isParent ? setShowModal(true) : handleReply(user.memberId || user.userId, 'interested')}
-        className="flex items-center gap-1 bg-white border border-red-500 text-red-500 px-3 py-1 rounded hover:bg-red-50"
-      >
-        <span>❤️</span> 感興趣
-      </button>
-
-      {/* 報名按鈕 (💰) */}
-      {(isParent || isAdultMember) ? (
-        <button 
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-        >
-          <span>💰</span> 報名
-        </button>
-      ) : (
-        <div className="text-xs text-gray-400 self-center">需由家長報名</div>
-      )}
-
-      {/* 報名選擇彈窗 (針對家長) */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-6 rounded-lg max-w-sm w-full">
-            <h3 className="text-lg font-bold mb-4">請選擇參與者</h3>
-            <div className="space-y-3">
-              {isParent ? (
-                childrenData?.map(child => (
-                  <button 
-                    key={child.id}
-                    onClick={() => handleReply(child.id, 'registered')}
-                    className="w-full text-left p-3 border rounded hover:bg-gray-50 flex justify-between"
-                  >
-                    <span>{child.name}</span>
-                    <span className="text-blue-600">確認報名</span>
-                  </button>
-                ))
-              ) : (
-                <button 
-                  onClick={() => handleReply(user.memberId || user.userId, 'registered')}
-                  className="w-full bg-blue-600 text-white py-2 rounded"
-                >
-                  本人報名
-                </button>
-              )}
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-3xl font-extrabold mb-8 text-blue-900">活動公告</h1>
+      <div className="space-y-6">
+        {events.length > 0 ? (
+          events.map((e) => (
+            <div key={e.eventId || e.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-xl font-bold text-gray-800">{e.title}</h2>
+                <span className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-medium">
+                  {e.date}
+                </span>
+              </div>
+              <p className="text-gray-600 mb-6">{e.description}</p>
+              <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                <div className="text-sm text-gray-400">
+                  地點: {e.location || '另行通知'} | 費用: ${e.fee || 0}
+                </div>
+                {/* 報名按鈕組件 */}
+                {user && (
+                  <EventReplyButton 
+                    event={e} 
+                    user={user} 
+                    childrenData={dashboardData?.children || []} 
+                    onSuccess={refreshEvents}
+                  />
+                )}
+              </div>
             </div>
-            <button onClick={() => setShowModal(false)} className="mt-4 w-full text-gray-500">取消</button>
-          </div>
-        </div>
-      )}
+          ))
+        ) : (
+          <p className="text-center text-gray-400 py-12 border-2 border-dashed rounded-2xl">目前沒有公開活動</p>
+        )}
+      </div>
     </div>
   );
 }
