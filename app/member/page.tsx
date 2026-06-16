@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import AuthGate from '@/components/AuthGate';
-import { branchName } from '@/lib/branches';
+import { branchName, branchIdMatch } from '@/lib/branches';
 import { setInterested } from '@/lib/api';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
@@ -70,7 +70,7 @@ function MemberInner() {
 
   useEffect(() => {
     load();
-  }, [user]);
+  }, [user?.userId]);
 
   const handleInterested = async (eventId: string) => {
     if (!data?.memberId) return alert('找不到成員 ID');
@@ -120,7 +120,7 @@ function MemberInner() {
     const eDate = e.date || '';
     if (eDate < today) return false;
     const memberBranch = val(member, 'branchId');
-    if (e.scope !== 'troop' && e.branchId !== memberBranch && e.branchId) return false;
+    if (e.scope !== 'troop' && !branchIdMatch(e.branchId, memberBranch) && e.branchId) return false;
     return !replyMap.has(eId);
   });
 

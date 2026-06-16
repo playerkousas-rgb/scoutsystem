@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { branchName } from '@/lib/branches';
 
 // ==================== 類型定義 ====================
@@ -298,10 +298,14 @@ export function LeaderRegistrationPanel({
     }
   };
 
-  // 初次載入
+  // 初次載入：用 useEffect 避免 render 中觸發 state update
+  useEffect(() => {
+    if (loading && !summary) {
+      loadSummary();
+    }
+  }, []); // 只在 mount 時執行一次
+
   if (loading && !summary) {
-    // 用 setTimeout 避免在 render 中觸發 state update
-    setTimeout(loadSummary, 0);
     return <div className="muted" style={{ padding: 20 }}>載入報名資料...</div>;
   }
 

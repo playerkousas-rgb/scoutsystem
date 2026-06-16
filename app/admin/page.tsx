@@ -74,7 +74,7 @@ function AdminInner() {
       }
     }
     load();
-  }, [user]);
+  }, [user?.userId]);
 
   if (loading) return <div className="stack" style={{ padding: 40 }}>載入中...</div>;
 

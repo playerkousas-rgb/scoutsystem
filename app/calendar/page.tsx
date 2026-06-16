@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { branchName } from '@/lib/branches';
+import { branchName, branchIdMatch } from '@/lib/branches';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 
@@ -95,7 +95,7 @@ function MemberCalendar({ events, replyMap, branchId }: {
     const eDate = e.date || '';
     if (eDate < new Date().toISOString().slice(0, 10)) return false;
     // 只看自己支部或全旅
-    if (e.scope !== 'troop' && e.branchId !== branchId && e.branchId) return false;
+    if (e.scope !== 'troop' && !branchIdMatch(e.branchId, branchId) && e.branchId) return false;
     // ❌ declined 的活動隱藏
     const eId = e.id || e.eventId || '';
     if (replyMap.get(eId) === 'declined') return false;
@@ -142,7 +142,7 @@ function ParentCalendar({ events, children, userId }: {
       } catch {}
     }
     load();
-  }, [children]);
+  }, [JSON.stringify(children)]);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -158,7 +158,7 @@ function ParentCalendar({ events, children, userId }: {
         events.forEach(e => {
           if (e.status !== 'published' && e.status !== 'active') return;
           if ((e.date || '') < today) return;
-          if (e.scope !== 'troop' && e.branchId !== childBranch && e.branchId) return;
+          if (e.scope !== 'troop' && !branchIdMatch(e.branchId, childBranch) && e.branchId) return;
           const eId = e.id || e.eventId || '';
           allVisibleEventIds.add(eId);
           if (!allEvents.find(x => (x.id || x.eventId) === eId)) {
@@ -175,7 +175,7 @@ function ParentCalendar({ events, children, userId }: {
       return events.filter(e => {
         if (e.status !== 'published' && e.status !== 'active') return false;
         if ((e.date || '') < today) return false;
-        if (e.scope !== 'troop' && e.branchId !== childBranch && e.branchId) return false;
+        if (e.scope !== 'troop' && !branchIdMatch(e.branchId, childBranch) && e.branchId) return false;
         return true;
       });
     }
@@ -248,7 +248,7 @@ function LeaderCalendar({ events, branchId, userId }: {
   const myEvents = useMemo(() => events.filter(e => {
     if (e.status !== 'published' && e.status !== 'active') return false;
     if ((e.date || '') < new Date().toISOString().slice(0, 10)) return false;
-    if (e.scope !== 'troop' && e.branchId !== branchId && e.branchId) return false;
+    if (e.scope !== 'troop' && !branchIdMatch(e.branchId, branchId) && e.branchId) return false;
     return true;
   }), [events, branchId]);
 
@@ -510,7 +510,7 @@ export default function CalendarPage() {
       }
     }
     load();
-  }, [user]);
+  }, [user?.userId]);
 
   if (loading) return <div className="stack" style={{ padding: 40 }}>載入中...</div>;
 

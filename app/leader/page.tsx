@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import AuthGate from '@/components/AuthGate';
-import { branchName } from '@/lib/branches';
+import { branchName, branchIdMatch } from '@/lib/branches';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAeVCs-C4T_e5-eTrQqfYuSQvCa9eZFKqdT6y4E50TR44zXYRgMzDxFKtWZrhhqV1rqA/exec';
 
-const leaderRoles: string[] = ['group_leader', 'branch_leader', 'coach'];
+const leaderRoles: string[] = ['super_admin', 'admin', 'group_leader', 'branch_leader', 'coach'];
 
 function getUser() {
   try {
@@ -58,7 +58,7 @@ function LeaderInner() {
       }
     }
     load();
-  }, [user]);
+  }, [user?.userId]);
 
   if (loading) return <div className="stack" style={{ padding: 40 }}>載入中...</div>;
 
@@ -70,14 +70,14 @@ function LeaderInner() {
     if (eDate < today) return false;
     const st = (e.status || '').toLowerCase();
     if (st !== 'published' && st !== 'active' && st !== '') return false;
-    return e.scope === 'troop' || e.branchId === branchId || !e.branchId;
+    return e.scope === 'troop' || branchIdMatch(e.branchId, branchId) || !e.branchId;
   });
 
   return (
     <div className="stack">
       <section className="hero">
         <span className="badge blue">領袖控制台</span>
-        <h1>{user?.role === 'group_leader' ? '團長' : user?.role === 'branch_leader' ? '支部領袖' : '教練員'}控制台</h1>
+        <h1>{user?.role === 'super_admin' ? '超級管理員' : user?.role === 'admin' ? '管理員' : user?.role === 'group_leader' ? '團長' : user?.role === 'branch_leader' ? '支部領袖' : '教練員'}控制台</h1>
         <p>管理所屬支部的活動、成員及申請。</p>
       </section>
 

@@ -183,7 +183,7 @@ export default function ActivitiesPage() {
       } catch {}
     }
     loadReplies();
-  }, [user]);
+  }, [user?.userId]);
 
   const toggleStar = (id: string) => {
     const next = new Set(stars);
