@@ -20,7 +20,6 @@ function getUser() {
   return null;
 }
 
-/** 大小寫不敏感取值 */
 function val(row: any, ...keys: string[]) {
   for (const k of keys) {
     const lower = String(k).toLowerCase();
@@ -33,20 +32,25 @@ function val(row: any, ...keys: string[]) {
 
 function LeaderInner() {
   const [stats, setStats] = useState<any>(null);
+  const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const user = getUser();
 
-  // 只有團長、支部領袖可審批（教練員不能）
   const canApprove = user?.role === 'group_leader' || user?.role === 'branch_leader';
 
   useEffect(() => {
     if (!user) return;
     async function load() {
       try {
-        const dashRes = await fetch(`${APPS_SCRIPT_URL}?action=getDashboardData&userId=${encodeURIComponent(user.userId)}`, { cache: 'no-store' });
+        const [dashRes, calRes] = await Promise.all([
+          fetch(`${APPS_SCRIPT_URL}?action=getDashboardData&userId=${encodeURIComponent(user.userId)}`, { cache: 'no-store' }),
+          fetch(`${APPS_SCRIPT_URL}?action=getPublicCalendarItems`, { cache: 'no-store' }),
+        ]);
         const dashData = await dashRes.json();
+        const calData = await calRes.json();
         if (dashData.success) setStats(dashData.data);
+        if (calData.success && calData.data) setEvents(calData.data.events || []);
       } catch (err: any) {
         setError(err.message || '載入失敗');
       } finally {
@@ -57,6 +61,17 @@ function LeaderInner() {
   }, [user]);
 
   if (loading) return <div className="stack" style={{ padding: 40 }}>載入中...</div>;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const branchId = user?.branchId || '';
+  // 領袖可見的活動：自己支部 + 全旅
+  const myEvents = events.filter((e: any) => {
+    const eDate = e.date || '';
+    if (eDate < today) return false;
+    const st = (e.status || '').toLowerCase();
+    if (st !== 'published' && st !== 'active' && st !== '') return false;
+    return e.scope === 'troop' || e.branchId === branchId || !e.branchId;
+  });
 
   return (
     <div className="stack">
@@ -76,7 +91,6 @@ function LeaderInner() {
         <section className="grid">
           <div className="card"><span className="badge blue">成員</span><h2>{stats.totalMembers || 0}</h2><p className="muted">所屬支部成員</p></div>
           <div className="card"><span className="badge green">活動</span><h2>{stats.totalEvents || 0}</h2><p className="muted">已發布活動</p></div>
-          {/* 教練員看不到待審批 */}
           {canApprove && (
             <Link href="/admin/parents" className="card group" style={{ textDecoration: 'none', color: 'inherit' }}>
               <span className="badge red">待審批</span>
@@ -87,7 +101,32 @@ function LeaderInner() {
         </section>
       )}
 
-      {/* 教練員不顯示申請管理卡片 */}
+      {/* ★ V5.0: 報名管理 - 活動列表 */}
+      <section className="card stack">
+        <h2>📋 活動報名管理</h2>
+        <p className="muted">查看活動的報名狀況、付款標記及未回覆名單。</p>
+        {myEvents.length === 0 && <p className="muted">暫無即將進行的活動。</p>}
+        {myEvents.map((e: any) => {
+          const eId = e.id || e.eventId || '';
+          return (
+            <Link
+              key={eId}
+              href={`/leader/registration?eventId=${encodeURIComponent(eId)}`}
+              className="card"
+              style={{ boxShadow: 'none', border: '1px solid var(--line)', textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+            >
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <strong>{e.title}</strong>
+                  <p className="muted" style={{ margin: 0 }}>{e.date} · {e.location} · {branchName(e.branchId)}</p>
+                </div>
+                <span className="btn" style={{ fontSize: 13 }}>查看報名 →</span>
+              </div>
+            </Link>
+          );
+        })}
+      </section>
+
       <section className="grid">
         <FeatureCard title="活動管理" icon="🗓️" text="管理所屬支部的活動。" href="/admin/events" />
         <FeatureCard title="圖書館標記" icon="📚" text="標記本旅需要的通告。" href="/library" />

@@ -135,6 +135,7 @@ function AdminInner() {
         <FeatureCard title="成員資料庫" icon="👥" text="查看及管理所有支部的成員資料。" href="/admin/members" />
         <FeatureCard title="家長審核 / 申請管理" icon="✅" text="審核家長、領袖、成員的註冊申請，可批核或拒絕。" href="/admin/parents" />
         <FeatureCard title="活動管理" icon="🗓️" text="新增、發布及管理全旅活動。" href="/admin/events" />
+        <FeatureCard title="報名管理" icon="📋" text="查看活動報名狀況、付款及未回覆名單。" href="/leader/registration" />
         <FeatureCard title="圖書館標記" icon="📚" text="標記本旅需要的圖書館通告。" href="/library" />
         <FeatureCard title="通告管理" icon="📄" text="上傳及管理通告檔案。" href="/notices" />
         <FeatureCard title="系統設定" icon="⚙️" text="管理 SystemConfig、Roles、FieldSettings 等系統設定。" href="/admin/settings" />
